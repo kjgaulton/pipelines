@@ -1,4 +1,4 @@
-`fgwas-workflow.py --help`
+`python3 fgwas-workflow.py --help`
 
     usage: fgwas-workflow.py [-h] -i INPUT -o OUTPUT -t THRESHOLD -p PROCESSES
                              [-b BED] [-f] [-k WINDOW] [-w ANNOTATIONS] [-l LLK]
