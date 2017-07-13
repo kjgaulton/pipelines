@@ -31,3 +31,24 @@ Scripts for footprinting in ATAC-seq peaks.
 Last update: 06/11/2017
 Maintained by: Josh Chiou
 ```
+
+## variant\_annotation\_matrix
+Binary variant-by-annotaiton matrices.  
+```
+Last update: 06/27/2017
+Maintained by: Anthony Aylward
+```
+
+## fgwas\_workflow
+Implementation of the workflow suggested by the FGWAS manual.  
+```
+Last update: 07/12/2017
+Maintained by: Anthony Aylward
+```
+
+## wasp\_mapping
+Process ChIP-seq, RNA-seq, and ATAC-seq data and apply WASP.  
+```
+Last update: 05/29/2017
+Maintained by: Anthony Aylward
+```
