@@ -1,0 +1,33 @@
+ATAC-seq pipeline:
+
+Overview
+-------------------------------------------------------------------------------
+The file atac_centipede.sh is a wrapper that starts with a .sam file of aligned
+reads and outputs 'footprints' (places in the genome where we predict a TF has
+bound). This pipeline does the following to the starting data:
+
+> Filters out low quality reads
+> Indexes and sorts reads
+> Calls ATAC-seq peaks using macs2
+> Uses FIMO to find motifs within those peaks
+> Uses Centipede to predict which of these motifs has a TF bound
+> Outputs genomic coordinates for predicted footprints
+-------------------------------------------------------------------------------
+
+Notes:
+-------------------------------------------------------------------------------
+This wrapper depends on the following, keep all of these updated:
+
+>samtools
+>bedtools
+>R
+>Python
+>atactk
+>Centipede
+>Fimo
+>macs2
+
+The following helper scripts / files need to be stored in ~/bin/ATAC_Pipeline:
+>split_fimo_by_motif.py
+>centipede.R
+>ENCODE.hg19.blacklist.bed
