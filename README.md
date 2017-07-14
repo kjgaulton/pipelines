@@ -31,3 +31,11 @@ Scripts for footprinting in ATAC-seq peaks.
 Last update: 06/11/2017
 Maintained by: Josh Chiou
 ```
+
+## ChIP-seq
+Pipeline for processing ChIP-seq data
+```
+Last update: 07/14/2017
+Maintained by: Josh Chiou
+TODO: Add automated step to pair treatment bams with control bams to call peaks.
+```
