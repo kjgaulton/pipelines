@@ -35,6 +35,8 @@ class InputFileHeader():
             'Z',
             'F',
             'N',
+            'NCASE',
+            'NCONTROL',
             'LNBF',
             'SEGNUMBER'
         }
@@ -69,25 +71,30 @@ class InputFileHeader():
                     ).format(column_name)
                 )
             elif (
-                (column_name not in {'LNBF', 'SEGNUMBER'})
+                (
+                    column_name
+                    not
+                    in
+                    {'N', 'NCASE', 'NCONTROL', 'LNBF', 'SEGNUMBER'}
+                )
                 and
-                (column_name not in self.tuple)
+                (
+                    column_name
+                    not
+                    in
+                    self.tuple
+                )
             ):
                 raise SystemExit(
                     (
                         'ERROR: Invalid header on input file: {} is missing.'
                     ).format(column_name)
                 )
-        if self.args.fine:
-            if 'SEGNUMBER' not in self.tuple:
-                raise SystemExit(
-                    'ERROR: Invalid header on input file: The --fine flag was '
-                    'used but SEGNUMBER is missing.'
-                )
-        elif 'SEGNUMBER' in self.tuple:
+        if {'N', 'NCASE', 'NCONTROL'} <= set(self.tuple):
             raise SystemExit(
-                'ERROR: SEGNUMBER was found in input file header, so you '
-                'should use the --fine flag for fine mapping.'
+                'ERROR: N, NCASE, and NCONTROL were all found in the input '
+                'file header. Please use EITHER quantitative OR case-control '
+                'format.'
             )
 
 
@@ -103,6 +110,7 @@ class IndividualAnnotationResults():
         self.annotations = header.annotations
         self.data = None
         self.defined_ci_annotations = set()
+        self.header = header
     
     def collect(self):
         '''
@@ -119,7 +127,7 @@ class IndividualAnnotationResults():
                         pool.starmap(
                             collect_individual_annotation_result,
                             (
-                                (args, annotation)
+                                (args, annotation, self.header)
                                 for
                                 annotation
                                 in
@@ -332,7 +340,7 @@ class FgwasModel():
             ) as f:
                 f.write(self.output_files[extension])
     
-    def append(self, annotation):
+    def append(self, annotation, header):
         '''
         Append an annotation to the model and determine the resulting joint
         model
@@ -342,7 +350,8 @@ class FgwasModel():
         call_fgwas(
             {
                 'args': self.args,
-                'annotation': '+'.join(self.annotations)
+                'annotation': '+'.join(self.annotations),
+                'header': header
             }
         )
         with open(
@@ -399,7 +408,8 @@ class FgwasModel():
                 (
                     {
                         'args': self.args,
-                        'annotation': '+'.join(self.annotations + [annotation])
+                        'annotation': '+'.join(self.annotations + [annotation]),
+                        'header': individual_results.header
                     }
                     for
                     annotation
@@ -446,10 +456,11 @@ class FgwasModel():
                             annotation
                         )
                     )
-        print(
-            '{} annotations can be added with positive parameter estimates'
-            .format(len(llk_list))
-        )
+        if individual_results.args.positive_estimates_only:
+            print(
+                '{} annotations can be added with positive parameter estimates'
+                .format(len(llk_list))
+            )
         if len(llk_list) == 0:
             print('No more annotations can be added')
         else:
@@ -514,7 +525,8 @@ class FgwasModel():
                                 'tag': 
                                     '+'.join(
                                         annotation_combination
-                                    )
+                                    ),
+                                'header': individual_results.header
                             }
                             for
                             annotation_combination
@@ -595,7 +607,7 @@ class FgwasModel():
                             'cross-validatioin phase'
                         )
 
-    def calibrate_cross_validation_penalty(self):
+    def calibrate_cross_validation_penalty(self, header):
         '''
         Calibrate the cross validation penalty
         '''
@@ -613,6 +625,7 @@ class FgwasModel():
                     {
                         'args': self.args,
                         'annotation': '+'.join(self.annotations),
+                        'header': header,
                         'xv_penalty': xv_penalty
                     }
                     for
@@ -644,7 +657,7 @@ class FgwasModel():
         self.xvl = best_xvl_penalty[0]
         self.cross_validation_penalty = best_xvl_penalty[1]
         
-    def remove_worst_annotation(self):
+    def remove_worst_annotation(self, header):
         '''
         Identify the annotation contributing least to the model and remove it
         '''
@@ -666,6 +679,7 @@ class FgwasModel():
                     {
                         'args': self.args,
                         'annotation': annotation_0,
+                        'header': header,
                         'xv_penalty': self.cross_validation_penalty,
                         'drop': '+'.join(
                             annotation_1
@@ -732,11 +746,13 @@ class FgwasModel():
 def call_fgwas(args_dict):
     '''
     A function for calling FGWAS. Its argument is a dictionary, which should
-    at least include keys "args" and "annotation", and may also include keys
-    "xv_penalty" and "drop." "xv_penalty" is required if "drop" is included.
+    at least include keys "args", "annotation" and "header", and may also
+    include keys "tag", "xv_penalty" and/or "drop." "xv_penalty" is required if
+    "drop" is included.
     '''
     args = args_dict['args']
     annotation = args_dict['annotation']
+    header = args_dict['header']
     tag = (
         args_dict['tag']
         if
@@ -790,7 +806,9 @@ def call_fgwas(args_dict):
         +
         (('-bed', args.bed) * bool(args.bed))
         +
-        (('-fine',) * args.fine)
+        (('-cc',) * ({'NCASE', 'NCONTROL'} <= set(header.tuple)))
+        +
+        (('-fine',) * ('SEGNUMBER' in header.tuple))
         +
         (('-k', args.window) * bool(args.window))
         +
@@ -823,7 +841,7 @@ def clean_up_intermediate_files(args, format_string, format_arg):
 
 
 # Collect an individual annotation result
-def collect_individual_annotation_result(args, annotation):
+def collect_individual_annotation_result(args, annotation, header):
     '''
     Collect the result for an individual annotation
     '''
@@ -833,7 +851,7 @@ def collect_individual_annotation_result(args, annotation):
             'Individual annotation results shouldn\'t be collected when '
             'arguments for model initialization have been given.'
         )
-    model.append(annotation)
+    model.append(annotation, header)
     return (annotation, model.llk) + model.estimates[annotation]
 
 
@@ -865,17 +883,7 @@ def main(args):
         .format(', '.join(model.annotations), model.llk)
     )
     for iteration in range(
-        len(
-            individual_results.defined_ci_annotations
-            if
-            individual_results.defined_ci_annotations
-            else
-            individual_results.annotations
-        )
-        -
-        len(
-            model.annotations
-        )
+        len(individual_results.defined_ci_annotations) - len(model.annotations)
     ):
         model.append_best_annotation(individual_results)
         if model.llk <= (model.llk_cache + args.threshold):
@@ -884,11 +892,11 @@ def main(args):
     print('Exporting pre-cross-validation results')
     model.export('pre-xv')
     print('Calibrating cross-validation penalty')
-    model.calibrate_cross_validation_penalty()
+    model.calibrate_cross_validation_penalty(header)
     print('Beginning cross-validation phase')
     number_of_annotations = len(model.annotations)
     for iteration in range(number_of_annotations - 1):
-        model.remove_worst_annotation()
+        model.remove_worst_annotation(header)
         if model.xvl <= model.xvl_cache:
             model.revert()
             break
@@ -938,12 +946,6 @@ def parse_arguments():
         '-b',
         '--bed',
         help='Path to .bed file containing regional definitions'
-    )
-    optional_group.add_argument(
-        '-f',
-        '--fine',
-        action='store_true',
-        help='Use for fine mapping input'
     )
     optional_group.add_argument(
         '-k',
