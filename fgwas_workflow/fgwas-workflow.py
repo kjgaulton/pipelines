@@ -227,7 +227,7 @@ class IndividualAnnotationResults():
                 raise SystemExit(
                     'There was a tie for the best individual annotation, and '
                     'I\'m not ready for that yet.'
-                )    
+                )
         else:
             raise Exception(
                 'Cannot identify annotations with with well-defined confidence '
@@ -883,7 +883,17 @@ def main(args):
         .format(', '.join(model.annotations), model.llk)
     )
     for iteration in range(
-        len(individual_results.defined_ci_annotations) - len(model.annotations)
+        len(
+            individual_results.defined_ci_annotations
+            if
+            individual_results.defined_ci_annotations
+            else
+            individual_results.annotations
+        )
+        -
+        len(
+            model.annotations
+        )
     ):
         model.append_best_annotation(individual_results)
         if model.llk <= (model.llk_cache + args.threshold):
