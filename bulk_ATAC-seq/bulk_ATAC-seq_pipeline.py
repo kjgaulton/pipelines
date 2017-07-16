@@ -27,8 +27,8 @@ def process_reads(args):
 	aligned_bam = output_prefix + '.sort.filt.bam'
 	rmdup_bam = output_prefix + '.sort.filt.rmdup.bam'
 
-	bwa_mem_cmd = ['bwa', 'mem', '-t', str(args.processes), args.reference, args.paired1, args.paired2]
-	quality_filt_cmd = ['samtools', 'view', '-h', '-F', '1548', '-q', str(args.quality), '-@', str(args.processes), '-']
+	bwa_mem_cmd = ['bwa', 'mem', '-M', '-t', str(args.processes), args.reference, args.paired1, args.paired2]
+	quality_filt_cmd = ['samtools', 'view', '-h', '-f', '0x2', '-q', str(args.quality), '-@', str(args.processes), '-']
 	mito_filt_cmd = ['grep', '-v', 'chrM']
 	samtools_sort_cmd = ['samtools', 'sort', '-m', '{}G'.format(args.memory), '-@', str(args.processes), '-']
 	
@@ -38,9 +38,18 @@ def process_reads(args):
 		mito_filt = subprocess.Popen(mito_filt_cmd, stdin=qual_filt.stdout, stdout=subprocess.PIPE, stderr=log)
 		subprocess.call(samtools_sort_cmd, stdin=mito_filt.stdout, stdout=bam_out, stderr=log)
 	
-	rmdup_cmd = ['samtools', 'rmdup', aligned_bam, rmdup_bam]
+	
+	metrics_file = output_prefix + '.picard_rmdup_metrics.txt'
+	rmdup_cmd = [
+			'java', '-Xmx{}G'.format(args.memory), 
+			'-jar', args.picard_mark_dup,
+			'INPUT={}'.format(aligned_bam),
+			'OUTPUT={}'.format(rmdup_bam),
+			'REMOVE_DUPLICATES=true',
+			'VALIDATION_STRINGENCY=LENIENT',
+			'METRICS_FILE={}'.format(metrics_file)
+		]
 	index_cmd = ['samtools', 'index', rmdup_bam]
-
 	if os.path.exists(aligned_bam) and os.path.getsize(aligned_bam) != 0:
 		subprocess.call(rmdup_cmd)
 	if os.path.exists(rmdup_bam) and os.path.getsize(rmdup_bam) != 0:
@@ -121,8 +130,9 @@ def process_args():
 	parser.add_argument('-n', '--name', required=False, type=str, default='sample', help='Output sample name to prepend')
 	parser.add_argument('-ref', '--reference', required=False, type=str, default=default_ref_genome, help='Path to reference genome')
 	parser.add_argument('-p', '--processes', required=False, type=int, default=4, help='Number of processes to use')
-	parser.add_argument('-m', '--memory', required=False, type=int, default=4, help='Maximum memory per thread for samtools sort')
-	parser.add_argument('-q', '--quality', required=False, type=int, default=10, help='Mapping quality cutoff for samtools')
+	parser.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread for samtools sort')
+	parser.add_argument('-q', '--quality', required=False, type=int, default=30, help='Mapping quality cutoff for samtools')
+	parser.add_argument('--picard_mark_dup', required=False, type=str, default='/home/joshchiou/bin/MarkDuplicates.jar', help='Path to picard MarkDuplicates.jar')
 	parser.add_argument('--skip_trim', required=False, action='store_true', default=False, help='Skip adapter trimming step')
 	parser.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step')
 	parser.add_argument('--skip_peaks', required=False, action='store_true', default=False, help='Skip calling peaks step')
