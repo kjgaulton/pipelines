@@ -32,6 +32,14 @@ Last update: 06/11/2017
 Maintained by: Josh Chiou
 ```
 
+## ChIP-seq
+Pipeline for processing ChIP-seq data
+```
+Last update: 07/14/2017
+Maintained by: Josh Chiou
+TODO: Add automated step to pair treatment bams with control bams to call peaks.
+```
+
 ## variant\_annotation\_matrix
 Binary variant-by-annotaiton matrices.  
 ```
@@ -42,7 +50,7 @@ Maintained by: Anthony Aylward
 ## fgwas\_workflow
 Implementation of the workflow suggested by the FGWAS manual.  
 ```
-Last update: 07/12/2017
+Last update: 07/16/2017
 Maintained by: Anthony Aylward
 ```
 

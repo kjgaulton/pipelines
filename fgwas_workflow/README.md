@@ -22,7 +22,6 @@
 
     optional arguments:
       -b BED, --bed BED     Path to .bed file containing regional definitions
-      -f, --fine            Use for fine mapping input
       -k WINDOW, --window WINDOW
                             Window size
       -w ANNOTATIONS, --annotations ANNOTATIONS

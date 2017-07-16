@@ -35,6 +35,8 @@ class InputFileHeader():
             'Z',
             'F',
             'N',
+            'NCASE',
+            'NCONTROL',
             'LNBF',
             'SEGNUMBER'
         }
@@ -69,25 +71,30 @@ class InputFileHeader():
                     ).format(column_name)
                 )
             elif (
-                (column_name not in {'LNBF', 'SEGNUMBER'})
+                (
+                    column_name
+                    not
+                    in
+                    {'N', 'NCASE', 'NCONTROL', 'LNBF', 'SEGNUMBER'}
+                )
                 and
-                (column_name not in self.tuple)
+                (
+                    column_name
+                    not
+                    in
+                    self.tuple
+                )
             ):
                 raise SystemExit(
                     (
                         'ERROR: Invalid header on input file: {} is missing.'
                     ).format(column_name)
                 )
-        if self.args.fine:
-            if 'SEGNUMBER' not in self.tuple:
-                raise SystemExit(
-                    'ERROR: Invalid header on input file: The --fine flag was '
-                    'used but SEGNUMBER is missing.'
-                )
-        elif 'SEGNUMBER' in self.tuple:
+        if {'N', 'NCASE', 'NCONTROL'} <= set(self.tuple):
             raise SystemExit(
-                'ERROR: SEGNUMBER was found in input file header, so you '
-                'should use the --fine flag for fine mapping.'
+                'ERROR: N, NCASE, and NCONTROL were all found in the input '
+                'file header. Please use EITHER quantitative OR case-control '
+                'format.'
             )
 
 
@@ -103,6 +110,7 @@ class IndividualAnnotationResults():
         self.annotations = header.annotations
         self.data = None
         self.defined_ci_annotations = set()
+        self.header = header
     
     def collect(self):
         '''
@@ -119,7 +127,7 @@ class IndividualAnnotationResults():
                         pool.starmap(
                             collect_individual_annotation_result,
                             (
-                                (args, annotation)
+                                (args, annotation, self.header)
                                 for
                                 annotation
                                 in
@@ -164,7 +172,9 @@ class IndividualAnnotationResults():
                 try:
                     float(ci_lo)
                     float(ci_hi)
-                    self.defined_ci_annotations.add(parameter.replace('_ln', ''))
+                    self.defined_ci_annotations.add(
+                        parameter.replace('_ln', '')
+                    )
                 except ValueError:
                     pass
         if not self.defined_ci_annotations:
@@ -204,22 +214,151 @@ class IndividualAnnotationResults():
                         (parameter, llk, ci_lo, estimate, ci_hi)
                     )
             if len(best_individual_annotations) == 1:
+                best_individual_annotation = best_individual_annotations[0]
                 self.best_starting_state = {
-                    'annotations': [best_individual_annotations[0][0]],
-                    'llk': best_individual_annotations[0][1],
+                    'annotations': [best_individual_annotation[0]],
+                    'llk': best_individual_annotation[1],
                     'estimates': {
-                        best_individual_annotations[0][0]:
-                            best_individual_annotations[0][2:]
+                        best_individual_annotation[0]:
+                            best_individual_annotation[2:]
                     },
                     'xvl': float('-inf'),
                     'xv_penalty': 0,
                     'output_files': {}
                 }
             elif len(best_individual_annotations) > 1:
-                raise SystemExit(
-                    'There was a tie for the best individual annotation, and '
-                    'I\'m not ready for that yet.'
-                )    
+                annotation_combinations = tuple(
+                    itertools.chain.from_iterable(
+                        itertools.combinations(
+                            (
+                                parameter
+                                for
+                                parameter, llk, ci_lo, estimate, ci_hi
+                                in
+                                best_individual_annotations
+                            ),
+                            length
+                        )
+                        for
+                        length
+                        in
+                        range(2, len(best_individual_annotations) + 1)
+                    )
+                )
+                with Pool(
+                    processes=min(
+                        self.args.processes,
+                        len(annotation_combinations)
+                    )
+                ) as pool:
+                    pool.map(
+                        call_fgwas,
+                        (
+                            {
+                                'args': self.args,
+                                'annotation':
+                                    '+'.join(
+                                        self.annotations
+                                        +
+                                        list(annotation_combination)
+                                    ),
+                                'tag': 
+                                    '+'.join(
+                                        annotation_combination
+                                    ),
+                                'header': individual_results.header
+                            }
+                            for
+                            annotation_combination
+                            in
+                            annotation_combinations
+                        )
+                    )
+                llk_list = []
+                for annotation_combination in annotation_combinations:
+                    with open(
+                        '{}-{}.llk'
+                        .format(
+                            args.output,
+                            '+'.join(annotation_combination)
+                        )
+                    ) as f:
+                        llk_list.append(
+                            (
+                                float(
+                                    f
+                                    .readline()
+                                    .replace('ln(lk): ', '')
+                                    .replace('\n', '')
+                                ),
+                                annotation_combination
+                            )
+                        )
+                best_combo_llk = max(
+                    llk
+                    for
+                    llk, annotation_combination
+                    in
+                    llk_list
+                )
+                best_combos = tuple(
+                    annotation_combination
+                    for
+                    llk, annotation_combination
+                    in
+                    llk_list
+                    if
+                    llk == best_combo_llk
+                )
+                if (
+                    (best_combo_llk > best_individual_llk)
+                    and
+                    len(best_combos) == 1
+                ):
+                    best_combo = list(best_combos[0])
+                    estimates = {}
+                    with open(
+                        '{}-{}.params'
+                        .format(args.output, '+'.join(best_combo))
+                    ) as f:
+                        for line in f:
+                            parsed_line = tuple(
+                                line.replace('\n', '').split(' ')
+                            )
+                            parameter = parsed_line[0][:-3]
+                            for annotation in self.annotations:
+                                if annotation == parameter:
+                                    estimates[annotation] = tuple(
+                                        parsed_line[1:]
+                                    )
+                                    break
+                    self.best_starting_state = {
+                        'annotations': best_combo,
+                        'llk': best_combo_llk,
+                        'estimates': estimates,
+                        'xvl': float('-inf'),
+                        'xv_penalty': 0,
+                        'output_files': {}
+                    }
+                for annotation in remaining_annotations.union(
+                        set(
+                            '+'.join(combo)
+                            for
+                            combo
+                            in
+                            annotation_combinations
+                        )
+                    ):
+                        clean_up_intermediate_files(
+                            args,
+                            '{}-{}.',
+                            annotation
+                        )
+                else:
+                    print(
+                        'Next best annotation is ambiguous, taking a null '
+                        'step and proceeding to cross-validation phase'
+                    )
         else:
             raise Exception(
                 'Cannot identify annotations with with well-defined confidence '
@@ -332,7 +471,7 @@ class FgwasModel():
             ) as f:
                 f.write(self.output_files[extension])
     
-    def append(self, annotation):
+    def append(self, annotation, header):
         '''
         Append an annotation to the model and determine the resulting joint
         model
@@ -342,7 +481,8 @@ class FgwasModel():
         call_fgwas(
             {
                 'args': self.args,
-                'annotation': '+'.join(self.annotations)
+                'annotation': '+'.join(self.annotations),
+                'header': header
             }
         )
         with open(
@@ -399,7 +539,8 @@ class FgwasModel():
                 (
                     {
                         'args': self.args,
-                        'annotation': '+'.join(self.annotations + [annotation])
+                        'annotation': '+'.join(self.annotations + [annotation]),
+                        'header': individual_results.header
                     }
                     for
                     annotation
@@ -446,15 +587,16 @@ class FgwasModel():
                             annotation
                         )
                     )
-        print(
-            '{} annotations can be added with positive parameter estimates'
-            .format(len(llk_list))
-        )
+        if individual_results.args.positive_estimates_only:
+            print(
+                '{} annotations can be added with positive parameter estimates'
+                .format(len(llk_list))
+            )
         if len(llk_list) == 0:
             print('No more annotations can be added')
         else:
             best_llk = max(llk for llk, annotation in llk_list)
-            best_annotations = [
+            best_annotations = tuple(
                 annotation
                 for
                 llk, annotation
@@ -462,7 +604,7 @@ class FgwasModel():
                 llk_list
                 if
                 llk == best_llk
-            ]
+            )
             if len(best_annotations) == 1:
                 best_annotation = best_annotations[0]
                 self.llk = best_llk
@@ -475,7 +617,9 @@ class FgwasModel():
                         parameter = parsed_line[0][:-3]
                         for annotation in self.annotations:
                             if annotation == parameter:
-                                self.estimates[annotation] = tuple(parsed_line[1:])
+                                self.estimates[annotation] = tuple(
+                                    parsed_line[1:]
+                                )
                                 break
                 self.collect_output_files(best_annotation)
                 for annotation in remaining_annotations:
@@ -514,7 +658,8 @@ class FgwasModel():
                                 'tag': 
                                     '+'.join(
                                         annotation_combination
-                                    )
+                                    ),
+                                'header': individual_results.header
                             }
                             for
                             annotation_combination
@@ -522,80 +667,87 @@ class FgwasModel():
                             annotation_combinations
                         )
                     )
-                    llk_list = []
-                    for annotation_combination in annotation_combinations:
-                        with open(
-                            '{}-{}.llk'
-                            .format(args.output, '+'.join(annotation_combination))
-                        ) as f:
-                            llk_list.append(
-                                (
-                                    float(
-                                        f
-                                        .readline()
-                                        .replace('ln(lk): ', '')
-                                        .replace('\n', '')
-                                    ),
-                                    annotation_combination
-                                )
+                llk_list = []
+                for annotation_combination in annotation_combinations:
+                    with open(
+                        '{}-{}.llk'
+                        .format(
+                            args.output,
+                            '+'.join(annotation_combination)
+                        )
+                    ) as f:
+                        llk_list.append(
+                            (
+                                float(
+                                    f
+                                    .readline()
+                                    .replace('ln(lk): ', '')
+                                    .replace('\n', '')
+                                ),
+                                annotation_combination
                             )
-                    best_combo_llk = max(
-                        llk
-                        for
-                        llk, annotation_combination
-                        in
-                        llk_list
+                        )
+                best_combo_llk = max(
+                    llk
+                    for
+                    llk, annotation_combination
+                    in
+                    llk_list
+                )
+                best_combos = tuple(
+                    annotation_combination
+                    for
+                    llk, annotation_combination
+                    in
+                    llk_list
+                    if
+                    llk == best_combo_llk
+                )
+                if (best_combo_llk > best_llk) and len(best_combos) == 1:
+                    best_combo = list(best_combos[0])
+                    self.llk = best_combo_llk
+                    self.annotations.extend(best_combo)
+                    with open(
+                        '{}-{}.params'
+                        .format(args.output, '+'.join(best_combo))
+                    ) as f:
+                        for line in f:
+                            parsed_line = tuple(
+                                line.replace('\n', '').split(' ')
+                            )
+                            parameter = parsed_line[0][:-3]
+                            for annotation in self.annotations:
+                                if annotation == parameter:
+                                    self.estimates[annotation] = tuple(
+                                        parsed_line[1:]
+                                    )
+                                    break
+                    self.collect_output_files('+'.join(best_combo))
+                    print(
+                        'Added {} to joint model (llk: {})'
+                        .format('+'.join(best_combo), str(best_llk))
                     )
-                    best_combos = [
-                        annotation_combination
+                else:
+                    print(
+                        'Next best annotation is ambiguous, taking a null '
+                        'step and proceeding to cross-validation phase'
+                    )
+                for annotation in remaining_annotations.union(
+                    set(
+                        '+'.join(combo)
                         for
-                        llk, annotation_combination
+                        combo
                         in
-                        llk_list
-                        if
-                        llk == best_combo_llk
-                    ]
-                    if (best_combo_llk > best_llk) and len(best_combos) == 1:
-                        best_combo = list(best_combos[0])
-                        self.llk = best_combo_llk
-                        self.annotations.extend(best_combo)
-                        with open(
-                            '{}-{}.params'
-                            .format(args.output, '+'.join(best_combo))
-                        ) as f:
-                            for line in f:
-                                parsed_line = tuple(
-                                    line.replace('\n', '').split(' ')
-                                )
-                                parameter = parsed_line[0][:-3]
-                                for annotation in self.annotations:
-                                    if annotation == parameter:
-                                        self.estimates[annotation] = tuple(
-                                            parsed_line[1:]
-                                        )
-                                        break
-                        self.collect_output_files('+'.join(best_combo))
-                        for annotation in remaining_annotations.union(
-                            set(
-                                '+'.join(combo)
-                                for
-                                combo
-                                in
-                                annotation_combinations
-                            )
-                        ):
-                            clean_up_intermediate_files(args, '{}-{}.', annotation)
-                        print(
-                            'Added {} to joint model (llk: {})'
-                            .format('+'.join(best_combo), str(best_llk))
-                        )
-                    else:
-                        print(
-                            'Next best annotation is ambiguous, proceeding to '
-                            'cross-validatioin phase'
-                        )
+                        annotation_combinations
+                    )
+                ):
+                    clean_up_intermediate_files(
+                        args,
+                        '{}-{}.',
+                        annotation
+                    )
 
-    def calibrate_cross_validation_penalty(self):
+    def calibrate_cross_validation_penalty(self, header):
         '''
         Calibrate the cross validation penalty
         '''
@@ -613,6 +765,7 @@ class FgwasModel():
                     {
                         'args': self.args,
                         'annotation': '+'.join(self.annotations),
+                        'header': header,
                         'xv_penalty': xv_penalty
                     }
                     for
@@ -640,11 +793,14 @@ class FgwasModel():
                     )
                 )
             clean_up_intermediate_files(args, '{}-p{}.', str(xv_penalty))
-        best_xvl_penalty = sorted(xv_likelihoods)[-1]
+        best_xvl_penalty = (
+            sorted(xv_likelihoods, key=operator.itemgetter(0), reverse=True)
+            [0]
+        )
         self.xvl = best_xvl_penalty[0]
         self.cross_validation_penalty = best_xvl_penalty[1]
         
-    def remove_worst_annotation(self):
+    def remove_worst_annotation(self, header):
         '''
         Identify the annotation contributing least to the model and remove it
         '''
@@ -666,6 +822,7 @@ class FgwasModel():
                     {
                         'args': self.args,
                         'annotation': annotation_0,
+                        'header': header,
                         'xv_penalty': self.cross_validation_penalty,
                         'drop': '+'.join(
                             annotation_1
@@ -683,13 +840,13 @@ class FgwasModel():
                     self.annotations
                 )
             )
-        xv_likelihoods = []
+        xvl_list = []
         for annotation in self.annotations:
             with open(
                 '{}-{}.ridgeparams'.format(args.output, annotation),
                 'r'
             ) as f:
-                xv_likelihoods.append(
+                xvl_list.append(
                     (
                         float(
                             f
@@ -701,27 +858,171 @@ class FgwasModel():
                         annotation
                     )
                 )
-        xvl_worst_annotation = sorted(xv_likelihoods)[-1]
-        self.annotations.remove(xvl_worst_annotation[1])
-        self.xvl = xvl_worst_annotation[0]
-        with open(
-            '{}-{}.params'.format(args.output, xvl_worst_annotation[1])
-        ) as f:
-            for line in f:
-                parsed_line = tuple(line.replace('\n', '').split(' '))
-                parameter = parsed_line[0][:-3]
-                for annotation in self.annotations:
-                    if annotation == parameter:
-                        self.estimates[annotation] = tuple(parsed_line[1:])
-                        break
-        self.collect_output_files(xvl_worst_annotation[1])
-        for annotation in self.annotations_cache:
-            clean_up_intermediate_files(args, '{}-{}.', annotation)
-        print(
-            'Dropped {} from joint model (xvl: {})'
-            .format(xvl_worst_annotation[1], str(xvl_worst_annotation[0]))
+        best_xvl = max(xvl for xvl, annotation in xvl_list)
+        worst_annotations = tuple(
+            annotation
+            for
+            llk, annotation
+            in
+            llk_list
+            if
+            llk == best_llk
         )
-                
+        if len(worst_annotations) == 1:
+            worst_annotation = worst_annotations[0]
+            self.xvl = best_xvl
+            self.annotations.remove(worst_annotation)
+            with open(
+                '{}-{}.params'.format(args.output, worst_annotation)
+            ) as f:
+                for line in f:
+                    parsed_line = tuple(line.replace('\n', '').split(' '))
+                    parameter = parsed_line[0][:-3]
+                    for annotation in self.annotations:
+                        if annotation == parameter:
+                            self.estimates[annotation] = tuple(
+                                parsed_line[1:]
+                            )
+                            break
+            self.collect_output_files(worst_annotation)
+            for annotation in remaining_annotations:
+                clean_up_intermediate_files(args, '{}-{}.', annotation)
+            print(
+                'Dropped {} from joint model (xvl: {})'
+                .format(worst_annotation, str(best_xvl))
+            )
+        elif len(worst_annotations) > 1:
+            annotation_combinations = tuple(
+                itertools.chain.from_iterable(
+                    itertools.combinations(best_annotations, length)
+                    for
+                    length
+                    in
+                    range(2, len(worst_annotations) + 1)
+                )
+            )
+            with Pool(
+                processes=min(
+                    self.args.processes,
+                    len(annotation_combinations)
+                )
+            ) as pool:
+                pool.map(
+                    call_fgwas,
+                    (
+                        {
+                            'args': self.args,
+                            'annotation':
+                                '+'.join(
+                                    self.annotations
+                                    +
+                                    list(annotation_combination)
+                                ),
+                            'tag': 
+                                '+'.join(
+                                    annotation_combination
+                                ),
+                            'header': individual_results.header,
+                            'xv_penalty': self.cross_validation_penalty,
+                            'drop': '+'.join(
+                                annotation
+                                for
+                                annotation
+                                in
+                                self.annotations
+                                if
+                                (annotation not in annotation_combination)
+                            )
+                        }
+                        for
+                        annotation_combination
+                        in
+                        annotation_combinations
+                    )
+                )
+            xvl_list = []
+            for annotation_combination in annotation_combinations:
+                with open(
+                    '{}-{}.llk'
+                    .format(
+                        args.output,
+                        '+'.join(annotation_combination)
+                    )
+                ) as f:
+                    xvl_list.append(
+                        (
+                            float(
+                                f
+                                .read()
+                                .split('\n')[-2]
+                                .replace(
+                                    'X-validation penalize ln(lk): ',
+                                    ''
+                                )
+                                .replace('\n', '')
+                            ),
+                            annotation_combination
+                        )
+                    )
+            best_combo_xvl = max(
+                xvl
+                for
+                xvl, annotation_combination
+                in
+                xvl_list
+            )
+            best_combos = [
+                annotation_combination
+                for
+                xvl, annotation_combination
+                in
+                xvl_list
+                if
+                xvl == best_combo_xvl
+            ]
+            if (best_combo_xvl > best_xvl) and len(best_combos) == 1:
+                best_combo = list(best_combos[0])
+                self.xvl = best_combo_xvl
+                self.annotations.extend(best_combo)
+                with open(
+                    '{}-{}.params'
+                    .format(args.output, '+'.join(best_combo))
+                ) as f:
+                    for line in f:
+                        parsed_line = tuple(
+                            line.replace('\n', '').split(' ')
+                        )
+                        parameter = parsed_line[0][:-3]
+                        for annotation in self.annotations:
+                            if annotation == parameter:
+                                self.estimates[annotation] = tuple(
+                                    parsed_line[1:]
+                                )
+                                break
+                self.collect_output_files('+'.join(best_combo))
+                print(
+                    'Dropped {} from joint model (llk: {})'
+                    .format('+'.join(best_combo), str(best_llk))
+                )
+            else:
+                print(
+                    'Next annotation to drop is ambiguous, taking a null '
+                    'step and terminating analysis'
+                )
+            for annotation in remaining_annotations.union(
+                set(
+                    '+'.join(combo)
+                    for
+                    combo
+                    in
+                    annotation_combinations
+                )
+            ):
+                clean_up_intermediate_files(
+                    args,
+                    '{}-{}.',
+                    annotation
+                )
         
         
         
@@ -732,11 +1033,13 @@ class FgwasModel():
 def call_fgwas(args_dict):
     '''
     A function for calling FGWAS. Its argument is a dictionary, which should
-    at least include keys "args" and "annotation", and may also include keys
-    "xv_penalty" and "drop." "xv_penalty" is required if "drop" is included.
+    at least include keys "args", "annotation" and "header", and may also
+    include keys "tag", "xv_penalty" and/or "drop." "xv_penalty" is required if
+    "drop" is included.
     '''
     args = args_dict['args']
     annotation = args_dict['annotation']
+    header = args_dict['header']
     tag = (
         args_dict['tag']
         if
@@ -790,7 +1093,9 @@ def call_fgwas(args_dict):
         +
         (('-bed', args.bed) * bool(args.bed))
         +
-        (('-fine',) * args.fine)
+        (('-cc',) * ({'NCASE', 'NCONTROL'} <= set(header.tuple)))
+        +
+        (('-fine',) * ('SEGNUMBER' in header.tuple))
         +
         (('-k', args.window) * bool(args.window))
         +
@@ -823,7 +1128,7 @@ def clean_up_intermediate_files(args, format_string, format_arg):
 
 
 # Collect an individual annotation result
-def collect_individual_annotation_result(args, annotation):
+def collect_individual_annotation_result(args, annotation, header):
     '''
     Collect the result for an individual annotation
     '''
@@ -833,7 +1138,7 @@ def collect_individual_annotation_result(args, annotation):
             'Individual annotation results shouldn\'t be collected when '
             'arguments for model initialization have been given.'
         )
-    model.append(annotation)
+    model.append(annotation, header)
     return (annotation, model.llk) + model.estimates[annotation]
 
 
@@ -884,11 +1189,11 @@ def main(args):
     print('Exporting pre-cross-validation results')
     model.export('pre-xv')
     print('Calibrating cross-validation penalty')
-    model.calibrate_cross_validation_penalty()
+    model.calibrate_cross_validation_penalty(header)
     print('Beginning cross-validation phase')
     number_of_annotations = len(model.annotations)
     for iteration in range(number_of_annotations - 1):
-        model.remove_worst_annotation()
+        model.remove_worst_annotation(header)
         if model.xvl <= model.xvl_cache:
             model.revert()
             break
@@ -938,12 +1243,6 @@ def parse_arguments():
         '-b',
         '--bed',
         help='Path to .bed file containing regional definitions'
-    )
-    optional_group.add_argument(
-        '-f',
-        '--fine',
-        action='store_true',
-        help='Use for fine mapping input'
     )
     optional_group.add_argument(
         '-k',
