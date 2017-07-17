@@ -340,24 +340,22 @@ class IndividualAnnotationResults():
                         'xv_penalty': 0,
                         'output_files': {}
                     }
-                for annotation in remaining_annotations.union(
-                        set(
-                            '+'.join(combo)
-                            for
-                            combo
-                            in
-                            annotation_combinations
-                        )
-                    ):
-                        clean_up_intermediate_files(
-                            args,
-                            '{}-{}.',
-                            annotation
-                        )
                 else:
                     print(
                         'Next best annotation is ambiguous, taking a null '
                         'step and proceeding to cross-validation phase'
+                    )
+                for annotation in set(
+                    '+'.join(combo)
+                    for
+                    combo
+                    in
+                    annotation_combinations
+                ):
+                    clean_up_intermediate_files(
+                        args,
+                        '{}-{}.',
+                        annotation
                     )
         else:
             raise Exception(
@@ -862,11 +860,11 @@ class FgwasModel():
         worst_annotations = tuple(
             annotation
             for
-            llk, annotation
+            xvl, annotation
             in
-            llk_list
+            xvl_list
             if
-            llk == best_llk
+            xvl == best_xvl
         )
         if len(worst_annotations) == 1:
             worst_annotation = worst_annotations[0]
@@ -885,7 +883,7 @@ class FgwasModel():
                             )
                             break
             self.collect_output_files(worst_annotation)
-            for annotation in remaining_annotations:
+            for annotation in self.annotations:
                 clean_up_intermediate_files(args, '{}-{}.', annotation)
             print(
                 'Dropped {} from joint model (xvl: {})'
@@ -1009,7 +1007,7 @@ class FgwasModel():
                     'Next annotation to drop is ambiguous, taking a null '
                     'step and terminating analysis'
                 )
-            for annotation in remaining_annotations.union(
+            for annotation in set(self.annotations).union(
                 set(
                     '+'.join(combo)
                     for
@@ -1133,11 +1131,7 @@ def collect_individual_annotation_result(args, annotation, header):
     Collect the result for an individual annotation
     '''
     model = FgwasModel(args)
-    if args.initialize:
-        raise Exception(
-            'Individual annotation results shouldn\'t be collected when '
-            'arguments for model initialization have been given.'
-        )
+    model.clear()
     model.append(annotation, header)
     return (annotation, model.llk) + model.estimates[annotation]
 
@@ -1157,14 +1151,17 @@ def main(args):
     print('Exporting individual annotation results')
     individual_results.export()
     if args.restrict_to_defined_ci_annotations:
-        print('Identifying annotations with well-defined confidence intervals')
+        print(
+            'Identifying annotations with well-defined confidence intervals'
+        )
         individual_results.identify_defined_ci_annotations()
         print(
             '{} annotations with well-defined confidence intervals.'
             .format(len(individual_results.defined_ci_annotations))
         )
-    individual_results.identify_best_starting_state()
-    model.set_state(individual_results.best_starting_state)
+    if not args.initialize:
+        individual_results.identify_best_starting_state()
+        model.set_state(individual_results.best_starting_state)
     print(
         'Constructing joint model, beginning with: {} (llk: {})'
         .format(', '.join(model.annotations), model.llk)
