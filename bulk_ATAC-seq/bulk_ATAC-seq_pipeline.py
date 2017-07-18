@@ -28,7 +28,7 @@ def process_reads(args):
 	rmdup_bam = output_prefix + '.sort.filt.rmdup.bam'
 
 	bwa_mem_cmd = ['bwa', 'mem', '-M', '-t', str(args.processes), args.reference, args.paired1, args.paired2]
-	quality_filt_cmd = ['samtools', 'view', '-h', '-f', '0x2', '-q', str(args.quality), '-@', str(args.processes), '-']
+	quality_filt_cmd = ['samtools', 'view', '-h', '-f', '0x2', '-F', '0x100', '-q', str(args.quality), '-@', str(args.processes), '-']
 	mito_filt_cmd = ['grep', '-v', 'chrM']
 	samtools_sort_cmd = ['samtools', 'sort', '-m', '{}G'.format(args.memory), '-@', str(args.processes), '-']
 	
@@ -51,7 +51,8 @@ def process_reads(args):
 		]
 	index_cmd = ['samtools', 'index', rmdup_bam]
 	if os.path.exists(aligned_bam) and os.path.getsize(aligned_bam) != 0:
-		subprocess.call(rmdup_cmd)
+		with open(os.devnull, 'w') as f:
+			subprocess.call(rmdup_cmd, stderr=f)
 	if os.path.exists(rmdup_bam) and os.path.getsize(rmdup_bam) != 0:
 		subprocess.call(index_cmd)
 	
