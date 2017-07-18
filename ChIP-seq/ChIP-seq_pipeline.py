@@ -132,19 +132,27 @@ def main(args):
 
 def process_args():
 	parser = argparse.ArgumentParser(description='Pipeline for ChIP to align reads to a reference genome, and then call peaks.')
-	parser.add_argument('-t', '--treatment', required=True, type=str, help='Path to treatment .fastq.gz')
-	parser.add_argument('-c', '--control', required=True, type=str, help='Path to control .fastq.gz')
-	parser.add_argument('-o', '--output', required=True, type=str, help='Output directory for processed files')
-	parser.add_argument('-n', '--name', required=False, type=str, default='sample', help='Output sample name to prepend')
-	parser.add_argument('-ref', '--reference', required=True, type=str, help='Path to reference genome prepared for BWA')
-	parser.add_argument('-markdup', '--markdup', required=True, type=str, help='Path to MarkDuplicates.jar')
-	parser.add_argument('-p', '--processes', required=False, type=int, default=4, help='Number of processes to use')
-	parser.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread for samtools sort')
-	parser.add_argument('-q', '--quality', required=False, type=int, default=10, help='Mapping quality cutoff for samtools')
-	parser.add_argument('--broad', required=False, action='store_true', default=False, help='Broad peak option for MACS2 callpeak')
-	parser.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step')
-	parser.add_argument('--skip_peaks', required=False, action='store_true', default=False, help='Skip calling peaks step')
-	parser.add_argument('--skip_track', required=False, action='store_true', default=False, help='Skip making signal track for genome browser')
+	
+	io_group = parser.add_argument_group('I/O arguments')
+	io_group.add_argument('-t', '--treatment', required=True, type=str, help='Path to treatment .fastq.gz')
+	io_group.add_argument('-c', '--control', required=True, type=str, help='Path to control .fastq.gz')
+	io_group.add_argument('-o', '--output', required=True, type=str, help='Output directory for processed files')
+	io_group.add_argument('-n', '--name', required=False, type=str, default='sample', help='Output sample name to prepend')
+	
+	align_group = parser.add_argument_group('Alignment and rmdup arguments')
+	align_group.add_argument('-p', '--processes', required=False, type=int, default=4, help='Number of processes to use')
+	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread')
+	align_group.add_argument('-q', '--quality', required=False, type=int, default=10, help='Mapping quality cutoff for samtools')
+	align_group.add_argument('-ref', '--reference', required=True, type=str, help='Path to reference genome prepared for BWA')
+	align_group.add_argument('-markdup', '--markdup', required=True, type=str, help='Path to MarkDuplicates.jar')
+	
+	macs2_group = parser.add_argument_group('MACS2 parameters')
+	macs2_group.add_argument('--broad', required=False, action='store_true', default=False, help='Broad peak option for MACS2 callpeak')
+	
+	skip_group = parser.add_argument_group('Skip processing')
+	skip_group.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step')
+	skip_group.add_argument('--skip_peaks', required=False, action='store_true', default=False, help='Skip calling peaks step')
+	skip_group.add_argument('--skip_track', required=False, action='store_true', default=False, help='Skip making signal track for genome browser')
 	return parser.parse_args()
 
 #=======================================================#
