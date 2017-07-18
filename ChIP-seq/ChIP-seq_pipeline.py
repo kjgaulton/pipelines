@@ -88,7 +88,7 @@ def bdgcmp(args):
 	bdgcmp_out = os.path.join(args.output, args.name + '_ppois.bdg')
 	
 	# add track label to the bedgraph, sort, and gzip
-	label = 'track type=bedGraph name=\"{0}\" description=\"{0}\" visibility=2 color=0,0,0 altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name)
+	label = 'track type=bedGraph name=\"{0}\" description=\"{0}\" visibility=2 color={1} altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name, args.color)
 	sorted_bdg = os.path.join(args.output, args.name  + '_ppois.sorted.bdg')
 	sort_cmd = ['sort', '-k', '1,1', '-k', '2,2n', bdg]
 	with open(sorted_bdg, 'w') as f:
@@ -140,23 +140,24 @@ def process_args():
 	io_group.add_argument('-n', '--name', required=False, type=str, default='sample', help='Output sample name to prepend')
 	
 	align_group = parser.add_argument_group('Alignment and rmdup arguments')
-	align_group.add_argument('-p', '--processes', required=False, type=int, default=4, help='Number of processes to use')
-	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread')
-	align_group.add_argument('-q', '--quality', required=False, type=int, default=10, help='Mapping quality cutoff for samtools')
+	align_group.add_argument('-p', '--processes', required=False, type=int, default=4, help='Number of processes to use [4]')
+	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread [8]')
+	align_group.add_argument('-q', '--quality', required=False, type=int, default=10, help='Mapping quality cutoff for samtools [10]')
 	align_group.add_argument('-ref', '--reference', required=True, type=str, help='Path to reference genome prepared for BWA')
 	align_group.add_argument('-markdup', '--markdup', required=True, type=str, help='Path to MarkDuplicates.jar')
 	
 	macs2_group = parser.add_argument_group('MACS2 parameters')
-	macs2_group.add_argument('--broad', required=False, action='store_true', default=False, help='Broad peak option for MACS2 callpeak')
-	
+	macs2_group.add_argument('--broad', required=False, action='store_true', default=False, help='Broad peak option for MACS2 callpeak [OFF]')
+	macs2_group.add_argument('--color', required=False, type=str, default='0,0,0', help='Color in R,G,B format to display for genome browser track [0,0,0]')
+
 	skip_group = parser.add_argument_group('Skip processing')
-	skip_group.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step')
-	skip_group.add_argument('--skip_peaks', required=False, action='store_true', default=False, help='Skip calling peaks step')
-	skip_group.add_argument('--skip_track', required=False, action='store_true', default=False, help='Skip making signal track for genome browser')
+	skip_group.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step [OFF]')
+	skip_group.add_argument('--skip_peaks', required=False, action='store_true', default=False, help='Skip calling peaks step [OFF]')
+	skip_group.add_argument('--skip_track', required=False, action='store_true', default=False, help='Skip making signal track for genome browser [OFF]')
 	return parser.parse_args()
 
 #=======================================================#
-
-args = process_args()
-logging.basicConfig(format='[%(filename)s] %(asctime)s %(levelname)s: %(message)s', datefmt='%I:%M:%S', level=logging.DEBUG)
-main(args)
+if __name__ == '__main__':
+	logging.basicConfig(format='[%(filename)s] %(asctime)s %(levelname)s: %(message)s', datefmt='%I:%M:%S', level=logging.DEBUG)
+	args = process_args()
+	main(args)
