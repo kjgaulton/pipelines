@@ -9,6 +9,36 @@ import logging
 
 #=======================================================#
 
+def detect_file_format(args):
+	if args.paired1.endswith('.gz') and args.paired2.endswith('.gz'):
+		return args.paired1, args.paired2
+	if args.paired1.endswith('.bz2') and args.paired2.endswith('.bz2'):
+		logging.info('BZ2 file format detected -- converting to GZ file format.')
+		p1_bn, p2_bn = args.paired1.split('.bz2')[0], args.paired2.split('.bz2')[0]
+		subprocess.call(['bunzip2', args.paired1, args.paired2])
+		subprocess.call(['gzip', p1_bn, p2_bn])
+		args.paired1, args.paired2 = p1_bn + '.gz', p2_bn + '.gz'
+		return args.paired1, args.paired2
+	if args.paired1.endswith('.fastq') and args.paired2.endswith('.fastq'):
+		logging.info('Unzipped FASTQ format detected -- converting to GZ file format.')
+		subprocess.call(['gzip', args.paired1, args.paired2])
+		args.paired1, args.paired2 = args.paired1 + '.gz', args.paired2 + '.gz'
+		return args.paired1, args.paired2
+	if args.paired1.endswith('.fq') and args.paired2.endswith('.fq'):
+		logging.info('Unzipped FQ format detected -- converting to GZ file format.')
+		p1_bn, p2_bn = args.paired1.split('.fq')[0] + '.fastq', args.paired2.split('.fq')[0] + '.fastq'
+		os.rename(args.paired1, p1_bn)
+		os.rename(args.paired2, p2_bn)
+		subprocess.call(['gzip', p1_bn, p2_bn])
+		args.paired1, args.paired2 = p1_bn + '.gz', p2_bn + '.gz'
+		return args.paired1, args.paired2
+	else:
+		logging.error('Unknown file format or paired end reads have different file formats.')
+		raise RuntimeError('Paired end reads must be in a valid file format!')
+	return
+
+#=======================================================#
+
 def trim_galore(args):
 	trim_galore_cmd = ['trim_galore', '--fastqc', '-q', '10', '-o', args.output, '--paired', args.paired1, args.paired2]
 	with open(os.devnull, 'w') as f:
@@ -127,6 +157,9 @@ def main(args):
 			os.makedirs(args.output)
 		except OSError:
 			pass
+	
+	args.paired1, args.paired2 = detect_file_format(args)
+	
 	if not args.skip_trim:
 		try:
 			logging.info('Trimming reads with trim_galore.')
