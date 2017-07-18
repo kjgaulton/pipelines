@@ -165,11 +165,11 @@ def process_args():
 	io_group.add_argument('-n', '--name', required=False, type=str, default='sample', help='Output sample name to prepend')
 	
 	align_group = parser.add_argument_group('Alignment arguments')
-	align_group.add_argument('-t', '--threads', required=False, type=int, default=4, help='Number of threads to use')
-	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread for samtools sort')
-	align_group.add_argument('-q', '--quality', required=False, type=int, default=30, help='Mapping quality cutoff for samtools')
-	align_group.add_argument('-ref', '--reference', required=False, type=str, default='/home/joshchiou/references/ucsc.hg19.fasta', help='Path to reference genome')
-	align_group.add_argument('--picard_mark_dup', required=False, type=str, default='/home/joshchiou/bin/MarkDuplicates.jar', help='Path to picard MarkDuplicates.jar')
+	align_group.add_argument('-t', '--threads', required=False, type=int, default=4, help='Number of threads to use [4]')
+	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread for samtools sort [8]')
+	align_group.add_argument('-q', '--quality', required=False, type=int, default=30, help='Mapping quality cutoff for samtools [30]')
+	align_group.add_argument('-ref', '--reference', required=False, type=str, default='/home/joshchiou/references/ucsc.hg19.fasta', help='Path to reference genome [/home/joshchiou/references/ucsc.hg19.fasta]')
+	align_group.add_argument('--picard_mark_dup', required=False, type=str, default='/home/joshchiou/bin/MarkDuplicates.jar', help='Path to picard MarkDuplicates.jar [/home/joshchiou/bin/MarkDuplicates.jar]')
 
 	skip_group = parser.add_argument_group('Skip processing steps')
 	skip_group.add_argument('--skip_trim', required=False, action='store_true', default=False, help='Skip adapter trimming step')
