@@ -103,7 +103,11 @@ def bdgcmp(args):
 
 def main(args):
 	logging.info('Starting up.')
-
+	if not os.path.isdir(args.output):
+		try:
+			os.makedirs(args.output)
+		except OSError:
+			pass
 	if not args.skip_align:
 		try:
 			logging.info('Aligning reads with bwa aln/samse and filtering reads with samtools.')

@@ -122,7 +122,11 @@ def make_bedgraph(args):
 
 def main(args):
 	logging.info('Starting up.')
-
+	if not os.path.isdir(args.output):
+		try:
+			os.makedirs(args.output)
+		except OSError:
+			pass
 	if not args.skip_trim:
 		try:
 			logging.info('Trimming reads with trim_galore.')
