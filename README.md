@@ -49,7 +49,7 @@ Maintained by: Anthony Aylward
 ## fgwas\_workflow
 Implementation of the workflow suggested by the FGWAS manual.  
 ```
-Last update: 07/19/2017
+Last update: 07/20/2017
 Maintained by: Anthony Aylward
 ```
 
