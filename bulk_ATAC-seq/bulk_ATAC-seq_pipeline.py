@@ -228,7 +228,7 @@ def main(args):
 	if not args.skip_qc:
 		try:
 			logging.info('Starting up QC using ataqv.')
-			get_qc_metrics(args)
+			get_qc_metrics(args, md_bam)
 		except Exception as e:
 			logging.error('Failed during QC step.')
 			print(repr(e), file=sys.stderr)
