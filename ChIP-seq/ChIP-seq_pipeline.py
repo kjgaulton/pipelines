@@ -112,15 +112,15 @@ def main(args):
 		try:
 			logging.info('Aligning reads with bwa aln/samse and filtering reads with samtools.')
 			logging.info('Processing treatment bam [{}].'.format(args.treatment))
-			treat_bam = process_reads(args, args.treatment, args.name)
+			args.treatment = process_reads(args, args.treatment, args.name)
 			logging.info('Processing control bam [{}].'.format(args.control))
-			control_bam = process_reads(args, args.control, args.name + '_control')
+			args.control = process_reads(args, args.control, args.name + '_control')
 		except Exception as e:
 			print('Check options -t and -c: ' + repr(e), file=sys.stderr)
 	if not args.skip_peaks:
 		try:
 			logging.info('Calling peaks with MACS2.')
-			call_peaks(args, treat_bam, control_bam)
+			call_peaks(args, args.treatment, args.control)
 		except Exception as e:
 			print(repr(e), file=sys.stderr)
 	if not args.skip_track:
@@ -138,8 +138,8 @@ def process_args():
 	parser = argparse.ArgumentParser(description='Pipeline for ChIP to align reads to a reference genome, and then call peaks.')
 	
 	io_group = parser.add_argument_group('I/O arguments')
-	io_group.add_argument('-t', '--treatment', required=True, type=str, help='Path to treatment .fastq.gz')
-	io_group.add_argument('-c', '--control', required=True, type=str, help='Path to control .fastq.gz')
+	io_group.add_argument('-t', '--treatment', required=True, type=str, help='Path to treatment file [.fastq.gz OR .bam if --skip_align is ON]')
+	io_group.add_argument('-c', '--control', required=True, type=str, help='Path to control file [.fastq.gz OR .bam if --skip_align is ON]')
 	io_group.add_argument('-o', '--output', required=True, type=str, help='Output directory for processed files')
 	io_group.add_argument('-n', '--name', required=False, type=str, default='sample', help='Output sample name to prepend')
 	
@@ -147,8 +147,8 @@ def process_args():
 	align_group.add_argument('-p', '--processes', required=False, type=int, default=4, help='Number of processes to use [4]')
 	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread [8]')
 	align_group.add_argument('-q', '--quality', required=False, type=int, default=10, help='Mapping quality cutoff for samtools [10]')
-	align_group.add_argument('-ref', '--reference', required=True, type=str, help='Path to reference genome prepared for BWA')
-	align_group.add_argument('-markdup', '--markdup', required=True, type=str, help='Path to MarkDuplicates.jar')
+	align_group.add_argument('-ref', '--reference', required=False, type=str, default='/home/joshchiou/references/ucsc.hg19.fasta',  help='Path to reference genome prepared for BWA [/home/joshchiou/references/ucsc.hg19.fasta]')
+	align_group.add_argument('-markdup', '--markdup', required=False, type=str, default='/home/joshchiou/bin/MarkDuplicates.jar', help='Path to MarkDuplicates.jar [/home/joshchiou/bin/MarkDuplicates.jar]')
 	
 	macs2_group = parser.add_argument_group('MACS2 parameters')
 	macs2_group.add_argument('--broad', required=False, action='store_true', default=False, help='Broad peak option for MACS2 callpeak [OFF]')

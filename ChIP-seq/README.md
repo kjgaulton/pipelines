@@ -1,8 +1,8 @@
 # ChIP-seq pipeline
 ```
 usage: ChIP-seq_pipeline.py [-h] -t TREATMENT -c CONTROL -o OUTPUT [-n NAME]
-                            [-p PROCESSES] [-m MEMORY] [-q QUALITY] -ref
-                            REFERENCE -markdup MARKDUP [--broad]
+                            [-p PROCESSES] [-m MEMORY] [-q QUALITY]
+                            [-ref REFERENCE] [-markdup MARKDUP] [--broad]
                             [--color COLOR] [--skip_align] [--skip_peaks]
                             [--skip_track]
 
@@ -13,9 +13,11 @@ optional arguments:
 
 I/O arguments:
   -t TREATMENT, --treatment TREATMENT
-                        Path to treatment .fastq.gz
+                        Path to treatment file [.fastq.gz OR .bam if
+                        --skip_align is ON]
   -c CONTROL, --control CONTROL
-                        Path to control .fastq.gz
+                        Path to control file [.fastq.gz OR .bam if
+                        --skip_align is ON]
   -o OUTPUT, --output OUTPUT
                         Output directory for processed files
   -n NAME, --name NAME  Output sample name to prepend
@@ -29,8 +31,10 @@ Alignment and rmdup arguments:
                         Mapping quality cutoff for samtools [10]
   -ref REFERENCE, --reference REFERENCE
                         Path to reference genome prepared for BWA
+                        [/home/joshchiou/references/ucsc.hg19.fasta]
   -markdup MARKDUP, --markdup MARKDUP
                         Path to MarkDuplicates.jar
+                        [/home/joshchiou/bin/MarkDuplicates.jar]
 
 MACS2 parameters:
   --broad               Broad peak option for MACS2 callpeak [OFF]
