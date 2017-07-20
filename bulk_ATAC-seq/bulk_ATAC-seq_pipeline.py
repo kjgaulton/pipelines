@@ -42,7 +42,7 @@ def detect_file_format(args):
 def trim_galore(args):
 	trim_galore_cmd = ['trim_galore', '--fastqc', '-q', '10', '-o', args.output, '--paired', args.paired1, args.paired2]
 	with open(os.devnull, 'w') as f:
-		subprocess.call(trim_galore_cmd, stderr=f)
+		subprocess.call(trim_galore_cmd, stderr=f, stdout=f)
 	trim_output_1 = os.path.join(args.output, os.path.basename(args.paired1).split('.fastq.gz')[0] + '_val_1.fq.gz')
 	trim_output_2 = os.path.join(args.output, os.path.basename(args.paired2).split('.fastq.gz')[0] + '_val_2.fq.gz')
 	return trim_output_1, trim_output_2
@@ -52,39 +52,49 @@ def trim_galore(args):
 def process_reads(args):
 	output_prefix = os.path.join(args.output, args.name)
 	align_log = output_prefix + '.align.log'
-	aligned_bam = output_prefix + '.sort.filt.bam'
+	sort_bam = output_prefix + '.sort.bam'
+	md_bam = output_prefix + '.sort.md.bam'
 	rmdup_bam = output_prefix + '.sort.filt.rmdup.bam'
 
 	bwa_mem_cmd = ['bwa', 'mem', '-M', '-t', str(args.threads), args.reference, args.paired1, args.paired2]
-	quality_filt_cmd = ['samtools', 'view', '-h', '-f', '0x2', '-F', '0x100', '-q', str(args.quality), '-@', str(args.threads), '-']
-	mito_filt_cmd = ['grep', '-v', 'chrM']
 	samtools_sort_cmd = ['samtools', 'sort', '-m', '{}G'.format(args.memory), '-@', str(args.threads), '-']
-	
-	with open(align_log, 'w') as log, open(aligned_bam, 'w') as bam_out:
+
+	with open(align_log, 'w') as log, open(sort_bam, 'w') as bam_out:
 		bwa_mem = subprocess.Popen(bwa_mem_cmd, stdout=subprocess.PIPE, stderr=log)
-		qual_filt = subprocess.Popen(quality_filt_cmd, stdin=bwa_mem.stdout, stdout=subprocess.PIPE, stderr=log)
-		mito_filt = subprocess.Popen(mito_filt_cmd, stdin=qual_filt.stdout, stdout=subprocess.PIPE, stderr=log)
-		subprocess.call(samtools_sort_cmd, stdin=mito_filt.stdout, stdout=bam_out, stderr=log)
-	
+		subprocess.call(samtools_sort_cmd, stdin=bwa_mem.stdout, stdout=bam_out, stderr=log)
 	
 	metrics_file = output_prefix + '.picard_rmdup_metrics.txt'
-	rmdup_cmd = [
+	
+	md_cmd = [
 			'java', '-Xmx{}G'.format(args.memory), 
 			'-jar', args.picard_mark_dup,
-			'INPUT={}'.format(aligned_bam),
-			'OUTPUT={}'.format(rmdup_bam),
-			'REMOVE_DUPLICATES=true',
+			'INPUT={}'.format(sort_bam),
+			'OUTPUT={}'.format(md_bam),
+			'REMOVE_DUPLICATES=false',
+			'ASSUME_SORTED=true',
 			'VALIDATION_STRINGENCY=LENIENT',
-			'METRICS_FILE={}'.format(metrics_file)
-		]
-	index_cmd = ['samtools', 'index', rmdup_bam]
-	if os.path.exists(aligned_bam) and os.path.getsize(aligned_bam) != 0:
+			'METRICS_FILE={}'.format(metrics_file)]
+	rmdup_cmd = [
+			'samtools', 'view',
+			'-b', '-h', '-f', '3',
+			'-F', '4', '-F', '256',
+			'-F', '1024', '-F', '2048',
+			'-q', str(args.quality),
+			md_bam]
+
+	autosomal_chr = ['chr' + str(c) for c in range(1,23)]
+	rmdup_cmd.extend(autosomal_chr)
+
+	if os.path.exists(sort_bam) and os.path.getsize(sort_bam) != 0:
 		with open(os.devnull, 'w') as f:
-			subprocess.call(rmdup_cmd, stderr=f)
-	if os.path.exists(rmdup_bam) and os.path.getsize(rmdup_bam) != 0:
-		subprocess.call(index_cmd)
-	
-	return rmdup_bam
+			subprocess.call(md_cmd, stderr=f)
+	if os.path.exists(md_bam) and os.path.getsize(md_bam) != 0:
+		subprocess.call(['samtools', 'index', md_bam])
+		with open(rmdup_bam, 'w') as f:
+			subprocess.call(rmdup_cmd, stdout=f)
+		subprocess.call(['samtools', 'index', rmdup_bam])
+
+	return md_bam, rmdup_bam
 
 #=======================================================#
 
@@ -93,31 +103,14 @@ def call_peaks(args, input_bam):
 	macs2_cmd = ['macs2', 'callpeak', 
 			'-t', input_bam, 
 			'--outdir', args.output, 
-			'-n', args.name, 
-			'--nomodel', 
+			'-n', args.name,
+			'-g', 'hs',
+			'--nomodel', '-B', 
 			'--shift', '-100', 
 			'--extsize', '200', 
-			'-B', 
-			'--keep-dup', 'all' ]
+			'--keep-dup', 'all']
 	with open(macs2_log, 'w') as f:
 		subprocess.call(macs2_cmd, stderr=f)
-	return
-
-#=======================================================#
-
-def cleanup(args):
-	read_1_name = os.path.basename(args.paired1).split('.fastq.gz')[0]
-	read_2_name = os.path.basename(args.paired2).split('.fastq.gz')[0]
-	trim_tmp_1 = os.path.join(args.output, read_1_name + '_trimmed.fq.gz')
-	trim_tmp_2 = os.path.join(args.output, read_2_name + '_trimmed.fq.gz')
-	fastqc_zip_1 = os.path.join(args.output, read_1_name + '_val_1_fastqc.zip')
-	fastqc_zip_2 = os.path.join(args.output, read_2_name + '_val_2_fastqc.zip')
-	clean = [trim_tmp_1, trim_tmp_2, fastqc_zip_1, fastqc_zip_2]
-	try:
-		for f in clean:
-			os.remove(f)
-	except:
-		pass
 	return
 
 #=======================================================#
@@ -150,6 +143,45 @@ def make_bedgraph(args):
 
 #=======================================================#
 
+def get_qc_metrics(args, md_bam):
+	ATAC_peaks = os.path.join(args.output, args.name + '_peaks.narrowPeak')
+	qc_json = os.path.join(args.output, args.name + '.ataqv.json.gz')
+	qc_log = os.path.join(args.output, args.name + 'ataqv.log')
+	qc_cmd = [
+			'ataqv', '--verbose',
+			'--metrics-file', qc_json,
+			'--peak-file', ATAC_peaks,
+			'--tss-file', args.tss,
+			'--tss-extension', '1000',
+			'--excluded-region-file', args.blacklist,
+			'--name', args.name,
+			'--description', 'Gaulton lab ATAC sample {}'.format(args.name),
+			'--mitochondrial-reference-name', 'chrM',
+			'--threads', str(args.threads),
+			'human', md_bam]
+	with open(qc_log, 'w') as f, open(os.devnull, 'w') as n:
+		subprocess.call(qc_cmd, stdout=f, stderr=n)
+	return
+
+#=======================================================#
+
+def cleanup(args):
+	read_1_name = os.path.basename(args.paired1).split('.fastq.gz')[0]
+	read_2_name = os.path.basename(args.paired2).split('.fastq.gz')[0]
+	#trim_tmp_1 = os.path.join(args.output, read_1_name + '_trimmed.fq.gz')
+	#trim_tmp_2 = os.path.join(args.output, read_2_name + '_trimmed.fq.gz')
+	fastqc_zip_1 = os.path.join(args.output, read_1_name + '_val_1_fastqc.zip')
+	fastqc_zip_2 = os.path.join(args.output, read_2_name + '_val_2_fastqc.zip')
+	clean = [fastqc_zip_1, fastqc_zip_2]
+	try:
+		for f in clean:
+			os.remove(f)
+	except:
+		pass
+	return
+
+#=======================================================#
+
 def main(args):
 	logging.info('Starting up.')
 	if not os.path.isdir(args.output):
@@ -165,26 +197,42 @@ def main(args):
 			logging.info('Trimming reads with trim_galore.')
 			args.paired1, args.paired2 = trim_galore(args)
 		except Exception as e:
+			logging.error('Failed during adaptor trimming step with trim_galore.')
 			print('Check options -p1 and -p2: ' + repr(e), file=sys.stderr)
+			sys.exit(1)
 	if not args.skip_align:
 		try:
 			logging.info('Aligning reads with bwa and filtering reads with samtools.')
-			rmdup_bam = process_reads(args)
+			md_bam, rmdup_bam = process_reads(args)
 		except Exception as e:
-			print('Check options -p1 and -p2: ' + repr(e), file=sys.stderr)
+			logging.error('Failed during alignment step with bwa mem.')
+			print(repr(e), file=sys.stderr)
+			sys.exit(1)
 	if not args.skip_peaks:
 		try:
 			logging.info('Calling peaks with MACS2.')
 			call_peaks(args, rmdup_bam)
 		except Exception as e:
+			logging.error('Failed during MACS2 peak calling step.')
 			print(repr(e), file=sys.stderr)
+			sys.exit(1)
 	if not args.skip_bdg:
 		try:
-			logging.info('Generating signal track with MACS2')
+			logging.info('Generating signal track with MACS2.')
 			make_bedgraph(args)
 		except:
+			logging.error('Failed during bedgraph generation step.')
 			print(repr(e), file=sys.stderr)
+			sys.exit(1)
 	logging.info('Cleaning up temporary files.')
+	if not args.skip_qc:
+		try:
+			logging.info('Starting up QC using ataqv.')
+			get_qc_metrics(args)
+		except Exception as e:
+			logging.error('Failed during QC step.')
+			print(repr(e), file=sys.stderr)
+			sys.exit(1)
 	if not args.skip_cleanup:
 		cleanup(args)
 	logging.info('Finishing up.')
@@ -203,17 +251,23 @@ def process_args():
 	
 	align_group = parser.add_argument_group('Alignment arguments')
 	align_group.add_argument('-t', '--threads', required=False, type=int, default=4, help='Number of threads to use [4]')
-	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory per thread for samtools sort [8]')
+	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory (in Gb) per thread for samtools sort [8]')
 	align_group.add_argument('-q', '--quality', required=False, type=int, default=30, help='Mapping quality cutoff for samtools [30]')
 	align_group.add_argument('-ref', '--reference', required=False, type=str, default='/home/joshchiou/references/ucsc.hg19.fasta', help='Path to reference genome [/home/joshchiou/references/ucsc.hg19.fasta]')
 	align_group.add_argument('--picard_mark_dup', required=False, type=str, default='/home/joshchiou/bin/MarkDuplicates.jar', help='Path to picard MarkDuplicates.jar [/home/joshchiou/bin/MarkDuplicates.jar]')
+	
+	qc_group = parser.add_argument_group('QC arguments')
+	qc_group.add_argument('--tss', required=False, type=str, default='/home/joshchiou/references/hg19_gencode_tss_unique.bed', help='Path to TSS definitions for calculating ATAC signal enrichment around TSS [/home/joshchiou/references/hg19_gencode_tss_unique.bed]')
+	qc_group.add_argument('--blacklist', required=False, type=str, default='/home/joshchiou/references/ENCODE.hg19.blacklist.bed', help='Path to blacklist BED file to ignore ENCODE high signal regions [/home/joshchiou/references/ENCODE.hg19.blacklist.bed]')
+
 
 	skip_group = parser.add_argument_group('Skip processing steps')
-	skip_group.add_argument('--skip_trim', required=False, action='store_true', default=False, help='Skip adapter trimming step')
-	skip_group.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step')
-	skip_group.add_argument('--skip_peaks', required=False, action='store_true', default=False, help='Skip calling peaks step')
-	skip_group.add_argument('--skip_bdg', required=False, action='store_true', default=False, help='Skip making genome browser track')
-	skip_group.add_argument('--skip_cleanup', required=False, action='store_true', default=False, help='Skip cleanup operations')
+	skip_group.add_argument('--skip_trim', required=False, action='store_true', default=False, help='Skip adapter trimming step [OFF]')
+	skip_group.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step [OFF]')
+	skip_group.add_argument('--skip_peaks', required=False, action='store_true', default=False, help='Skip calling peaks step [OFF]')
+	skip_group.add_argument('--skip_bdg', required=False, action='store_true', default=False, help='Skip making genome browser track [OFF]')
+	skip_group.add_argument('--skip_qc', required=False, action='store_true', default=False, help='Skip ATAC qc step using ataqv [OFF]')
+	skip_group.add_argument('--skip_cleanup', required=False, action='store_true', default=False, help='Skip cleanup operations [OFF]')
 	
 	return parser.parse_args()
 
