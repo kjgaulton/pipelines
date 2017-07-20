@@ -4,7 +4,7 @@ Pipelines for the Gaulton Lab at UCSD.
 ## bulk\_ATAC-seq
 Pipeline to process bulk ATAC-seq data.  
 ```
-Last update: 07/18/2017
+Last update: 07/20/2017
 Maintained by: Josh Chiou
 ```
 ## single-cell\_ATAC-seq
@@ -35,7 +35,7 @@ Maintained by: Josh Chiou
 ## ChIP-seq
 Pipeline for processing ChIP-seq data
 ```
-Last update: 07/18/2017
+Last update: 07/20/2017
 Maintained by: Josh Chiou
 ```
 
