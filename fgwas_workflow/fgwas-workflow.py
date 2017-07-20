@@ -892,7 +892,7 @@ class FgwasModel():
         elif len(worst_annotations) > 1:
             annotation_combinations = tuple(
                 itertools.chain.from_iterable(
-                    itertools.combinations(best_annotations, length)
+                    itertools.combinations(worst_annotations, length)
                     for
                     length
                     in
@@ -918,9 +918,9 @@ class FgwasModel():
                                 ),
                             'tag': 
                                 '+'.join(
-                                    annotation_combination
+                                    sorted(annotation_combination)
                                 ),
-                            'header': individual_results.header,
+                            'header': header,
                             'xv_penalty': self.cross_validation_penalty,
                             'drop': '+'.join(
                                 annotation
@@ -941,7 +941,7 @@ class FgwasModel():
             xvl_list = []
             for annotation_combination in annotation_combinations:
                 with open(
-                    '{}-{}.llk'
+                    '{}-{}.ridgeparams'
                     .format(
                         args.output,
                         '+'.join(annotation_combination)
@@ -978,10 +978,25 @@ class FgwasModel():
                 if
                 xvl == best_combo_xvl
             ]
-            if (best_combo_xvl > best_xvl) and len(best_combos) == 1:
-                best_combo = list(best_combos[0])
+            if best_combo_xvl >= best_xvl:
+                best_combo = sorted(
+                    list(
+                        {
+                            annotation
+                            for
+                            combo
+                            in
+                            best_combos
+                            for
+                            annotation
+                            in
+                            combo
+                        }
+                    )
+                )
                 self.xvl = best_combo_xvl
-                self.annotations.extend(best_combo)
+                for annotation in best_combo:
+                    self.annotations.remove(annotation)
                 with open(
                     '{}-{}.params'
                     .format(args.output, '+'.join(best_combo))
@@ -999,15 +1014,15 @@ class FgwasModel():
                                 break
                 self.collect_output_files('+'.join(best_combo))
                 print(
-                    'Dropped {} from joint model (llk: {})'
-                    .format('+'.join(best_combo), str(best_llk))
+                    'Dropped {} from joint model (xvl: {})'
+                    .format('+'.join(best_combo), str(best_xvl))
                 )
             else:
                 print(
                     'Next annotation to drop is ambiguous, taking a null '
                     'step and terminating analysis'
                 )
-            for annotation in set(self.annotations).union(
+            for annotation in set(self.annotations_cache).union(
                 set(
                     '+'.join(combo)
                     for
@@ -1074,16 +1089,22 @@ def call_fgwas(args_dict):
                 (
                     '{}-{}'.format(args.output, tag)
                     *
-                    (not any((bool(xv_penalty), bool(drop))))
+                    (
+                        (not bool(xv_penalty))
+                        or
+                        bool(drop)
+                    )
                 )
                 +
                 (
                     '{}-p{}'.format(args.output, str(xv_penalty))
                     *
-                    (bool(xv_penalty) and (not bool(drop)))
+                    (
+                        bool(xv_penalty)
+                        and
+                        (not bool(drop))
+                    )
                 )
-                +
-                ('{}-{}'.format(args.output, annotation) * bool(drop))
             )
         )
         +
@@ -1180,13 +1201,15 @@ def main(args):
         )
     ):
         model.append_best_annotation(individual_results)
-        if model.llk <= (model.llk_cache + args.threshold):
+        if model.llk < (model.llk_cache):
             model.revert()
             break
     print('Exporting pre-cross-validation results')
     model.export('pre-xv')
     print('Calibrating cross-validation penalty')
     model.calibrate_cross_validation_penalty(header)
+#     model.xvl = 143.87
+#     model.cross_validation_penalty = 0.5
     print('Beginning cross-validation phase')
     number_of_annotations = len(model.annotations)
     for iteration in range(number_of_annotations - 1):
