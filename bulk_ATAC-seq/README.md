@@ -1,6 +1,6 @@
 # bulk ATAC-seq pipeline
 
-NOTE: files necessary for the pipeline can be downloaded from the ./etc directory.
+NOTE: files necessary for the pipeline can be downloaded from the [etc](https://github.com/kjgaulton/pipelines/tree/master/bulk_ATAC-seq/etc) directory.
 
 ```
 usage: bulk_ATAC-seq_pipeline.py [-h] [-p1 PAIRED1] [-p2 PAIRED2] -o OUTPUT

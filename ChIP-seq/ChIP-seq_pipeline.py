@@ -90,7 +90,7 @@ def bdgcmp(args):
 	# add track label to the bedgraph, sort, and gzip
 	label = 'track type=bedGraph name=\"{0}\" description=\"{0}\" visibility=2 color={1} altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name, args.color)
 	sorted_bdg = os.path.join(args.output, args.name  + '_ppois.sorted.bdg')
-	sort_cmd = ['sort', '-k', '1,1', '-k', '2,2n', bdg]
+	sort_cmd = ['sort', '-k', '1,1', '-k', '2,2n', bdgcmp_out]
 	with open(sorted_bdg, 'w') as f:
 		print(label, file=f)
 	with open(sorted_bdg, 'a') as f:

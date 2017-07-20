@@ -132,7 +132,7 @@ def make_bedgraph(args):
 	
 	label = 'track type=bedGraph name=\"{0}\" description=\"{0}\" visibility=2 color=0,0,0 altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name)
 	sorted_bdg = os.path.join(args.output, args.name  + '_ppois.sorted.bdg')
-	sort_cmd = ['sort', '-k', '1,1', '-k', '2,2n', bdg]
+	sort_cmd = ['sort', '-k', '1,1', '-k', '2,2n', bdgcmp_out]
 	with open(sorted_bdg, 'w') as f:
 		print(label, file=f)
 	with open(sorted_bdg, 'a') as f:
@@ -220,7 +220,7 @@ def main(args):
 		try:
 			logging.info('Generating signal track with MACS2.')
 			make_bedgraph(args)
-		except:
+		except Exception as e:
 			logging.error('Failed during bedgraph generation step.')
 			print(repr(e), file=sys.stderr)
 			sys.exit(1)
