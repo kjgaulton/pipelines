@@ -883,7 +883,7 @@ class FgwasModel():
                             )
                             break
             self.collect_output_files(worst_annotation)
-            for annotation in self.annotations:
+            for annotation in self.annotations_cache:
                 clean_up_intermediate_files(args, '{}-{}.', annotation)
             print(
                 'Dropped {} from joint model (xvl: {})'
@@ -1208,8 +1208,6 @@ def main(args):
     model.export('pre-xv')
     print('Calibrating cross-validation penalty')
     model.calibrate_cross_validation_penalty(header)
-#     model.xvl = 143.87
-#     model.cross_validation_penalty = 0.5
     print('Beginning cross-validation phase')
     number_of_annotations = len(model.annotations)
     for iteration in range(number_of_annotations - 1):
