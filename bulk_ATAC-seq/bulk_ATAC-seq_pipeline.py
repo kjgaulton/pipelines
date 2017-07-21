@@ -146,7 +146,7 @@ def make_bedgraph(args):
 def get_qc_metrics(args, md_bam):
 	ATAC_peaks = os.path.join(args.output, args.name + '_peaks.narrowPeak')
 	qc_json = os.path.join(args.output, args.name + '.ataqv.json.gz')
-	qc_log = os.path.join(args.output, args.name + 'ataqv.log')
+	qc_log = os.path.join(args.output, args.name + '.ataqv.log')
 	qc_cmd = [
 			'ataqv', '--verbose',
 			'--metrics-file', qc_json,
