@@ -944,7 +944,7 @@ class FgwasModel():
                     '{}-{}.ridgeparams'
                     .format(
                         args.output,
-                        '+'.join(annotation_combination)
+                        '+'.join(sorted(annotation_combination))
                     )
                 ) as f:
                     xvl_list.append(
@@ -1171,15 +1171,14 @@ def main(args):
     individual_results.collect()
     print('Exporting individual annotation results')
     individual_results.export()
-    if args.restrict_to_defined_ci_annotations:
-        print(
-            'Identifying annotations with well-defined confidence intervals'
-        )
-        individual_results.identify_defined_ci_annotations()
-        print(
-            '{} annotations with well-defined confidence intervals.'
-            .format(len(individual_results.defined_ci_annotations))
-        )
+    print(
+        'Identifying annotations with well-defined confidence intervals'
+    )
+    individual_results.identify_defined_ci_annotations()
+    print(
+        '{} annotations with well-defined confidence intervals.'
+        .format(len(individual_results.defined_ci_annotations))
+    )
     if not args.initialize:
         individual_results.identify_best_starting_state()
         model.set_state(individual_results.best_starting_state)
@@ -1286,14 +1285,6 @@ def parse_arguments():
     )
     alternate_workflow_group = parser.add_argument_group(
         'alternate workflow arguments'
-    )
-    alternate_workflow_group.add_argument(
-        '--restrict-to-defined-ci-annotations',
-        action='store_true',
-        help=(
-            'Exclude from analysis any annotations whose individual results '
-            'have undefined confidence intervals.'
-        )
     )
     alternate_workflow_group.add_argument(
         '--positive-estimates-only',
