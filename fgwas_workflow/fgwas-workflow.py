@@ -1024,7 +1024,7 @@ class FgwasModel():
                 )
             for annotation in set(self.annotations_cache).union(
                 set(
-                    '+'.join(combo)
+                    '+'.join(sorted(combo))
                     for
                     combo
                     in
