@@ -513,13 +513,7 @@ class FgwasModel():
             for
             annotation
             in
-            (
-                individual_results.defined_ci_annotations
-                if
-                individual_results.defined_ci_annotations
-                else
-                individual_results.annotations
-            )
+            individual_results.defined_ci_annotations
             if
             annotation
             not
@@ -1171,9 +1165,7 @@ def main(args):
     individual_results.collect()
     print('Exporting individual annotation results')
     individual_results.export()
-    print(
-        'Identifying annotations with well-defined confidence intervals'
-    )
+    print('Identifying annotations with well-defined confidence intervals')
     individual_results.identify_defined_ci_annotations()
     print(
         '{} annotations with well-defined confidence intervals.'
@@ -1186,21 +1178,13 @@ def main(args):
         'Constructing joint model, beginning with: {} (llk: {})'
         .format(', '.join(model.annotations), model.llk)
     )
-    for iteration in range(
-        len(
-            individual_results.defined_ci_annotations
-            if
-            individual_results.defined_ci_annotations
-            else
-            individual_results.annotations
-        )
-        -
-        len(
-            model.annotations
-        )
+    while (
+        individual_results.defined_ci_annotations
+        >
+        set(model.annotations)
     ):
         model.append_best_annotation(individual_results)
-        if model.llk < (model.llk_cache):
+        if model.llk <= model.llk_cache:
             model.revert()
             break
     print('Exporting pre-cross-validation results')
@@ -1211,7 +1195,7 @@ def main(args):
     number_of_annotations = len(model.annotations)
     for iteration in range(number_of_annotations - 1):
         model.remove_worst_annotation(header)
-        if model.xvl <= model.xvl_cache:
+        if model.xvl < model.xvl_cache:
             model.revert()
             break
     print('Exporting post-cross-validation results')
