@@ -2,9 +2,10 @@
 ```
 usage: ChIP-seq_pipeline.py [-h] -t TREATMENT -c CONTROL -o OUTPUT [-n NAME]
                             [-p PROCESSES] [-m MEMORY] [-q QUALITY]
-                            [-ref REFERENCE] [-markdup MARKDUP] [--broad]
-                            [--color COLOR] [--skip_align] [--skip_peaks]
-                            [--skip_track]
+                            [-ref REFERENCE] [-markdup MARKDUP]
+                            [--qvalue QVALUE] [--broad]
+                            [--broad_cutoff BROAD_CUTOFF] [--color COLOR]
+                            [--skip_align] [--skip_peaks] [--skip_track]
 
 Pipeline for ChIP to align reads to a reference genome, and then call peaks.
 
@@ -37,7 +38,10 @@ Alignment and rmdup arguments:
                         [/home/joshchiou/bin/MarkDuplicates.jar]
 
 MACS2 parameters:
+  --qvalue QVALUE       MACS2 callpeak qvalue cutoff [0.01]
   --broad               Broad peak option for MACS2 callpeak [OFF]
+  --broad_cutoff BROAD_CUTOFF
+                        MACS2 callpeak qvalue cutoff for broad regions [0.05]
   --color COLOR         Color in R,G,B format to display for genome browser
                         track [0,0,0]
 
@@ -45,4 +49,5 @@ Skip processing:
   --skip_align          Skip read alignment step [OFF]
   --skip_peaks          Skip calling peaks step [OFF]
   --skip_track          Skip making signal track for genome browser [OFF]
+
 ```

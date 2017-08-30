@@ -35,7 +35,7 @@ Maintained by: Josh Chiou
 ## ChIP-seq
 Pipeline for processing ChIP-seq data
 ```
-Last update: 07/20/2017
+Last update: 07/21/2017
 Maintained by: Josh Chiou
 ```
 

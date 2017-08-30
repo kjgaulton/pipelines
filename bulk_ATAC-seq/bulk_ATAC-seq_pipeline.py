@@ -130,7 +130,7 @@ def make_bedgraph(args):
 	
 	bdgcmp_out = os.path.join(args.output, args.name + '_ppois.bdg')
 	
-	label = 'track type=bedGraph name=\"{0}\" description=\"{0}\" visibility=2 color=0,0,0 altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name)
+	label = 'track type=bedGraph name=\"{0}\" description=\"{0}, ATAC peaks\" visibility=2 color={1} altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name, args.bdg_color)
 	sorted_bdg = os.path.join(args.output, args.name  + '_ppois.sorted.bdg')
 	sort_cmd = ['sort', '-k', '1,1', '-k', '2,2n', bdgcmp_out]
 	with open(sorted_bdg, 'w') as f:
@@ -259,7 +259,9 @@ def process_args():
 	qc_group = parser.add_argument_group('QC arguments')
 	qc_group.add_argument('--tss', required=False, type=str, default='/home/joshchiou/references/hg19_gencode_tss_unique.bed', help='Path to TSS definitions for calculating ATAC signal enrichment around TSS [/home/joshchiou/references/hg19_gencode_tss_unique.bed]')
 	qc_group.add_argument('--blacklist', required=False, type=str, default='/home/joshchiou/references/ENCODE.hg19.blacklist.bed', help='Path to blacklist BED file to ignore ENCODE high signal regions [/home/joshchiou/references/ENCODE.hg19.blacklist.bed]')
-
+	
+	bedgraph_group = parser.add_argument_group('Signal track arguments')
+	bedgraph_group.add_argument('--bdg_color', required=False, type=str, default='0,0,0', help='Color for genome browser signal track in R,G,B [0,0,0]')
 
 	skip_group = parser.add_argument_group('Skip processing steps')
 	skip_group.add_argument('--skip_trim', required=False, action='store_true', default=False, help='Skip adapter trimming step [OFF]')
