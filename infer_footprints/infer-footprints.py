@@ -73,65 +73,67 @@ def parse_arguments():
             'Pipeline for peak calling'
         )
     )
-    parser.add_argument(
+    required_group = parser.add_argument_group('required arguments')
+    required_group.add_argument(
         '-i',
         '--input',
         required=True,
         help='Input file--reads or BAM'
     )
-    parser.add_argument(
-        '-i2',
-        '--in2',
-        help='For paired-end reads'
-    )
-    parser.add_argument(
+    required_group.add_argument(
         '-o',
         '--output',
         required=True,
         help='Output file--where to put the DNase footprints.'
     )
-    parser.add_argument(
+    required_group.add_argument(
+        '--memory-limit',
+        required=True,
+        type=int,
+        help='Approximate memory limit for samtools sort, in gigabytes'
+    )
+    required_group.add_argument(
+        '--blacklist',
+        required=True,
+        help='Encode blacklist file'
+    )
+    required_group.add_argument(
+        '--motifs-db-path',
+        required=True,
+        help='Path to motifs database'
+    )
+    optional_group = parser.add_argument_group('optional arguments')
+    optional_group.add_argument(
+        '-i2',
+        '--in2',
+        help='For paired-end reads'
+    )
+    optional_group.add_argument(
         '-q',
         '--qual',
         default='30',
         help='cutoff Phred score for filtering out FASTQ reads'
     )
-    parser.add_argument(
+    optional_group.add_argument(
         '--max-processes',
         type=int,
         default=1,
         help='Maximum number of processes allowed'
     )
-    parser.add_argument(
-        '--memory-limit',
-        required=True,
-        type=int,
-        help='Approximate memory limit in gigabytes'
-    )
-    parser.add_argument(
+    optional_group.add_argument(
         '--trim-reads',
         type=int,
         help='Trimming reads???? idek'
     )
-    parser.add_argument(
-        '--blacklist',
-        required=True,
-        help='Encode blacklist file'
-    )
-    parser.add_argument(
+    optional_group.add_argument(
         '--motifs-list',
         help='List of motifs'
     )
-    parser.add_argument(
-        '--motifs-db-path',
-        required=True,
-        help='Path to motifs database'
-    )
-    parser.add_argument(
+    optional_group.add_argument(
         '--centipede-path',
         help='Path to R script for centipede'
     )
-    parser.add_argument(
+    optional_group.add_argument(
         '--reference-genome',
         default=hg19.path,
         help='Path to reference genome'
