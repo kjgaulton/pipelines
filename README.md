@@ -61,7 +61,7 @@ Maintained by: Anthony Aylward
 ```
 
 ## infer\_footprints
-Infer TF binding footprints from ChIP-seq / DNase-seq data.  
+Infer TF binding footprints from DNase-seq data.  
 ```
 Last update: 05/29/2017
 Maintained by: Mei-Lin Okino, Anthony Aylward
