@@ -59,3 +59,10 @@ Process ChIP-seq, RNA-seq, and ATAC-seq data and apply WASP.
 Last update: 05/29/2017
 Maintained by: Anthony Aylward
 ```
+
+## infer\_footprints
+Infer TF binding footprints from ChIP-seq / DNase-seq data.  
+```
+Last update: 05/29/2017
+Maintained by: Mei-Lin Okino, Anthony Aylward
+```
