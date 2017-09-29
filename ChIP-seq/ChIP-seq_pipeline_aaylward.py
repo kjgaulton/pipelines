@@ -25,8 +25,9 @@ def process_reads(args, reads, name):
 	rmdup_bam = output_prefix + '.sort.filt.rmdup.bam'
 	
 	# align reads with bwa aln / bwa samse
-	# then filter out reads that are unmapped, chrM reads, < quality score
-	# then sort reads	
+	# then filter out reads that are unmapped, < quality score
+	# then sort reads
+	# then remove chrM reads
 	with open(align_log, 'w') as log:
 		with seqalign.SequenceAlignment(
 			input_file=reads,
