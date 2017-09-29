@@ -90,8 +90,9 @@ class SequenceAlignment():
         self.processes = int(processes)
         self.index = None
         self.bam_file_path = None
-        self.cleans_up_bam = False
         self.log = log
+        self.cleans_up_bam = False
+        self.has_been_sorted = False
         self.parse_input(input_file)
     
     def __enter__(self):
@@ -146,7 +147,7 @@ class SequenceAlignment():
     
     def align_reads(self):
         if not self.aligner:
-            self.aligner=BwaAligner()
+            self.aligner = BwaAligner()
         self.aligner.align_reads(self)
     
     def remove_supplementary_alignments(self):
@@ -183,6 +184,10 @@ class SequenceAlignment():
         self.bam = bam
     
     def samtools_index(self):
+        if not self.has_been_sorted:
+            raise Exception(
+                'BAM must be sorted before it can be indexed'
+            )
         with namedpipe.temp_named_pipe() as (
             bam_pipe
         ), namedpipe.temp_named_pipe() as (
@@ -244,27 +249,22 @@ class SequenceAlignment():
     def samtools_sort(self, memory_limit=5):
         if memory_limit < 5:
             raise MemoryLimitError('Please provide at least 5 GB of memory')
-        with namedpipe.temp_named_pipe() as sorted_bam_pipe:
-            with subprocess.Popen(
-                (
-                    'sh',
-                    '-c',
-                    (
-                        'cat {0} & '
-                        'samtools sort -m {1}M -@ {2} -o {0}'
-                    )
-                    .format(
-                        sorted_bam_pipe.name,
-                        int(1024 / self.processes * memory_limit),
-                        self.processes
-                    )
+        with subprocess.Popen(
+            (
+                'samtools',
+                'sort', 
+                '-m', '{}M'.format(
+                    int(1024 / self.processes * memory_limit)
                 ),
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=self.log
-            ) as samtools_sort:
-                bam, _ = samtools_sort.communicate(input=self.bam)
+                '-@', str(self.processes)
+            ),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=self.log
+        ) as samtools_sort:
+            bam, _ = samtools_sort.communicate(input=self.bam)
         self.bam = bam
+        self.has_been_sorted=True
     
     def remove_blacklisted_reads(self, blacklist_path):
         with subprocess.Popen(
