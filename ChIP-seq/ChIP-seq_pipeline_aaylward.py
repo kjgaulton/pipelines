@@ -6,6 +6,15 @@ import os
 import sys
 import reprlib
 import logging
+import socket
+
+hostname = socket.gethostname()
+if hostname == 'gatsby.ucsd.edu':
+    sys.path.append('/home/data/kglab-python3-modules')
+elif hostname == 'holden':
+    sys.path.append('/lab/kglab-python3-modules')
+
+import seqalign
 
 #=======================================================#
 
@@ -17,19 +26,22 @@ def process_reads(args, reads, name):
 	
 	# align reads with bwa aln / bwa samse
 	# then filter out reads that are unmapped, chrM reads, < quality score
-	# then sort reads
-	bwa_aln_cmd = ['bwa', 'aln', '-q', '15', '-t', str(args.processes), args.reference, reads]
-	bwa_samse_cmd = ['bwa', 'samse', args.reference, '-', reads]
-	quality_filt_cmd = ['samtools', 'view', '-h', '-F', '1548', '-q', str(args.quality), '-@', str(args.processes), '-']
-	mito_filt_cmd = ['grep', '-v', 'chrM']
-	samtools_sort_cmd = ['samtools', 'sort', '-m', '{}G'.format(args.memory), '-@', str(args.processes), '-']
-	
-	with open(align_log, 'w') as log, open(aligned_bam, 'w') as bam_out:
-		bwa_aln = subprocess.Popen(bwa_aln_cmd, stdout=subprocess.PIPE, stderr=log)
-		bwa_samse = subprocess.Popen(bwa_samse_cmd, stdin=bwa_aln.stdout, stdout=subprocess.PIPE, stderr=log)
-		qual_filt = subprocess.Popen(quality_filt_cmd, stdin=bwa_samse.stdout, stdout=subprocess.PIPE, stderr=log)
-		mito_filt = subprocess.Popen(mito_filt_cmd, stdin=qual_filt.stdout, stdout=subprocess.PIPE, stderr=log)
-		subprocess.call(samtools_sort_cmd, stdin=mito_filt.stdout, stdout=bam_out, stderr=log)
+	# then sort reads	
+	with open(align_log, 'w') as log:
+		with seqalign.SequenceAlignment(
+			input_file=reads,
+			processes=args.processes,
+			log=log,
+			aligner=BwaAligner(
+				trim=15
+			)
+		) as sa:
+			sa.cleans_up_bam=False
+			sa.apply_quality_filter()
+			sa.samtools_sort(memory_limit=args.memory * args.processes)
+			sa.samtools_index()
+			sa.remove_mitochondrial_reads()
+			sa.write(aligned_bam)
 	
 	# use picard MarkDuplicates to filter out duplicate reads
 	# then index the bam file
