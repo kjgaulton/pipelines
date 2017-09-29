@@ -216,8 +216,8 @@ class SequenceAlignment():
     def remove_mitochondrial_reads(self):
         if not self.index:
             raise Exception(
-                'use SequenceAlignment().samtools_index() before using '
-                'SequenceAlignment().remove_mitochondrial_reads()'
+                'use SequenceAlignment.samtools_index() before using '
+                'SequenceAlignment.remove_mitochondrial_reads()'
             )
         with tempfile.NamedTemporaryFile() as temp_bam:
             temp_bam.write(self.bam)
