@@ -33,9 +33,7 @@ def process_reads(args, reads, name):
 			input_file=reads,
 			processes=args.processes,
 			log=log,
-			aligner=BwaAligner(
-				trim=15
-			)
+			aligner=BwaAligner(trim=15)
 		) as sa:
 			sa.cleans_up_bam=False
 			sa.apply_quality_filter()
