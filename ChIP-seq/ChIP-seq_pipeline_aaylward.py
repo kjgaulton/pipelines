@@ -34,7 +34,10 @@ def process_reads(args, reads, name):
 			phred_quality_score=args.quality,
 			processes=args.processes,
 			log=log,
-			aligner=seqalign.BwaAligner(trim=15)
+			aligner=seqalign.BwaAligner(
+				reference_genome_path=args.reference, 
+				trim=15
+			)
 		) as sa:
 			sa.cleans_up_bam=False
 			sa.apply_quality_filter()
