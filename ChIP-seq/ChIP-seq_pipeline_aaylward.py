@@ -31,6 +31,7 @@ def process_reads(args, reads, name):
 	with open(align_log, 'w') as log:
 		with seqalign.SequenceAlignment(
 			input_file=reads,
+			phred_quality_score=args.quality,
 			processes=args.processes,
 			log=log,
 			aligner=seqalign.BwaAligner(trim=15)
