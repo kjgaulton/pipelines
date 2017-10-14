@@ -14,6 +14,7 @@ if hostname == 'gatsby.ucsd.edu':
 elif hostname == 'holden':
     sys.path.append('/lab/kglab-python3-modules')
 
+import picard
 import seqalign
 
 #=======================================================#
@@ -37,6 +38,10 @@ def process_reads(args, reads, name):
 			aligner=seqalign.BwaAligner(
 				reference_genome_path=args.reference, 
 				trim=15
+			),
+			dedupper=picard.MarkDuplicates(
+				metrics_file=output_prefix + '.MarkDuplicates.metrics',
+				memory_gb=args.memory
 			)
 		) as sa:
 			sa.cleans_up_bam=False
@@ -44,20 +49,9 @@ def process_reads(args, reads, name):
 			sa.samtools_sort(memory_limit=args.memory * args.processes)
 			sa.samtools_index()
 			sa.remove_mitochondrial_reads()
+			sa.remove_duplicates()
+			sa.samtools_index()
 			sa.write(aligned_bam)
-	
-	# use picard MarkDuplicates to filter out duplicate reads
-	# then index the bam file
-	metrics_file = output_prefix + '.MarkDuplicates.metrics'
-	rmdup_cmd = [
-			'java', '-Xmx{}G'.format(args.memory), 
-			'-jar', args.markdup,
-			'INPUT={}'.format(aligned_bam),
-			'OUTPUT={}'.format(rmdup_bam),
-			'REMOVE_DUPLICATES=true',
-			'VALIDATION_STRINGENCY=LENIENT',
-			'METRICS_FILE={}'.format(metrics_file)]
-	index_cmd = ['samtools', 'index', rmdup_bam]
 
 	if os.path.exists(aligned_bam) and os.path.getsize(aligned_bam) != 0:
 		with open(os.devnull, 'w') as f:
