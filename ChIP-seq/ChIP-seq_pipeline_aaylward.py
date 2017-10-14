@@ -29,6 +29,8 @@ def process_reads(args, reads, name):
 	# then filter out reads that are unmapped, < quality score
 	# then sort reads
 	# then remove chrM reads
+	# use picard MarkDuplicates to filter out duplicate reads
+	# then index the bam file
 	with open(align_log, 'w') as log:
 		with seqalign.SequenceAlignment(
 			input_file=reads,
