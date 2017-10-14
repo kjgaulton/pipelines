@@ -51,16 +51,13 @@ def process_reads(args, reads, name):
 			sa.samtools_sort(memory_limit=args.memory * args.processes)
 			sa.samtools_index()
 			sa.remove_mitochondrial_reads()
-			sa.remove_duplicates()
-			sa.samtools_index()
 			sa.write(aligned_bam)
-
-	if os.path.exists(aligned_bam) and os.path.getsize(aligned_bam) != 0:
-		with open(os.devnull, 'w') as f:
-			subprocess.call(rmdup_cmd, stderr=f)
-	if os.path.exists(rmdup_bam) and os.path.getsize(rmdup_bam) != 0:
-		subprocess.call(index_cmd)
-	
+			if os.path.exists(aligned_bam) and os.path.getsize(aligned_bam) != 0:
+				sa.remove_duplicates()
+				sa.write(rmdup_bam)
+			if os.path.exists(rmdup_bam) and os.path.getsize(rmdup_bam) != 0:
+				sa.samtools_index()
+				sa.write(rmdup_bam)
 	return rmdup_bam
 
 #=======================================================#
