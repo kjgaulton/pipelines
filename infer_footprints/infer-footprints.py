@@ -46,7 +46,7 @@ def main(args):
         bam = sa.bam
         bam_index = sa.index
     
-    with chippeaks.ChipPeaks(input_bam=bam) as cp:
+    with chippeaks.ChipPeaks(treatment_bam=bam, nomodel=True, shift=-100) as cp:
         cp.blacklist(args.blacklist)
         peaks = cp.peaks
     
