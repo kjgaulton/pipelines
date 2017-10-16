@@ -14,6 +14,7 @@ if hostname == 'gatsby.ucsd.edu':
 elif hostname == 'holden':
     sys.path.append('/lab/kglab-python3-modules')
 
+import chippeaks
 import picard
 import seqalign
 
@@ -64,19 +65,17 @@ def process_reads(args, reads, name):
 
 def call_peaks(args, treat_bam, control_bam):
 	macs2_log = os.path.join(args.output, '.'.join([args.name, 'macs2_callpeaks.log']))
-	macs2_cmd = ['macs2', 'callpeak', 
-			'-t', treat_bam,
-			'-c', control_bam,
-			'--outdir', args.output, 
-			'-n', args.name,
-			'-q', str(args.qvalue),
-			'--extsize', '200', 
-			'-B', 
-			'--keep-dup', 'all' ]
-	if args.broad:
-		macs2_cmd.extend(['--broad', '--broad-cutoff', str(args.broad_cutoff)])
 	with open(macs2_log, 'w') as f:
-		subprocess.call(macs2_cmd, stderr=f)
+	    with chippeaks.ChipPeaks(
+	        treatment_bam=treat_bam,
+	        control_bam=control_bam,
+	        qvalue=args.qvalue,
+	        broad=args.broad,
+	        broad_cutoff=args.broad_cutoff,
+	        log=f
+	    ) as cp:
+	        cp.cleans_up = False
+	        cp.write('{}/{}'.format(args.output, args.name))
 	return
 
 #=======================================================#
