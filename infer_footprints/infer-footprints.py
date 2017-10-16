@@ -48,7 +48,7 @@ def main(args):
     
     with chippeaks.ChipPeaks(treatment_bam=bam, nomodel=True, shift=-100) as cp:
         cp.blacklist(args.blacklist)
-        peaks = cp.peaks
+        peaks = cp.peaks_narrowPeak
     
     with footprints.Footprints(
         input_bam=bam,
