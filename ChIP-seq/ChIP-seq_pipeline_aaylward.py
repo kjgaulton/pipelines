@@ -65,7 +65,8 @@ def process_reads(args, reads, name):
 
 def call_peaks(args, treat_bam, control_bam):
 	macs2_log = os.path.join(args.output, '.'.join([args.name, 'macs2_callpeaks.log']))
-	with open(macs2_log, 'w') as f:
+	bdgcmp_log = os.path.join(args.output, '.'.join([args.name, 'bdgcmp.log']))
+	with open(macs2_log, 'w') as f, open(bdgcmp_log, 'w') as g:
 	    with chippeaks.ChipPeaks(
 	        treatment_bam=treat_bam,
 	        control_bam=control_bam,
@@ -75,23 +76,14 @@ def call_peaks(args, treat_bam, control_bam):
 	        log=f
 	    ) as cp:
 	        cp.cleans_up = False
+	        cp.log=g
+	        cp.bdgcmp()
 	        cp.write('{}/{}'.format(args.output, args.name))
 	return
 
 #=======================================================#
 
 def bdgcmp(args):
-	bdgcmp_log = os.path.join(args.output, '.'.join([args.name, 'bdgcmp.log']))
-	bdgcmp_cmd = [
-			'macs2', 'bdgcmp',
-			'-t', os.path.join(args.output, args.name + '_treat_pileup.bdg'),
-			'-c', os.path.join(args.output, args.name + '_control_lambda.bdg'),
-			'-m', 'ppois',
-			'--outdir', args.output,
-			'--o-prefix', args.name,
-			'-p', '0.00001']
-	with open(bdgcmp_log, 'w') as f:
-		subprocess.call(bdgcmp_cmd, stderr=f)
 	
 	bdgcmp_out = os.path.join(args.output, args.name + '_ppois.bdg')
 	
