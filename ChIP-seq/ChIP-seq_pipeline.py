@@ -35,7 +35,7 @@ def process_reads(args, reads, name):
 	# then index the bam file
 	metrics_file = output_prefix + '.MarkDuplicates.metrics'
 	rmdup_cmd = [
-			'java', '-Xmx{}G'.format(args.memory), 
+			'java', '-Xmx{}G'.format(12), 
 			'-jar', args.markdup,
 			'INPUT={}'.format(aligned_bam),
 			'OUTPUT={}'.format(rmdup_bam),
@@ -59,6 +59,7 @@ def call_peaks(args, treat_bam, control_bam):
 	macs2_cmd = ['macs2', 'callpeak', 
 			'-t', treat_bam,
 			'-c', control_bam,
+			'-g', args.macs2_genome,
 			'--outdir', args.output, 
 			'-n', args.name,
 			'-q', str(args.qvalue),
@@ -152,10 +153,11 @@ def process_args():
 	align_group.add_argument('-markdup', '--markdup', required=False, type=str, default='/home/joshchiou/bin/MarkDuplicates.jar', help='Path to MarkDuplicates.jar [/home/joshchiou/bin/MarkDuplicates.jar]')
 	
 	macs2_group = parser.add_argument_group('MACS2 parameters')
-	macs2_group.add_argument('--qvalue', required=False, type=float, default=0.01, help='MACS2 callpeak qvalue cutoff [0.01]')
+	macs2_group.add_argument('--qvalue', required=False, type=float, default=0.05, help='MACS2 callpeak qvalue cutoff [0.05]')
 	macs2_group.add_argument('--broad', required=False, action='store_true', default=False, help='Broad peak option for MACS2 callpeak [OFF]')
 	macs2_group.add_argument('--broad_cutoff', required=False, type=float, default=0.05, help='MACS2 callpeak qvalue cutoff for broad regions [0.05]')
 	macs2_group.add_argument('--color', required=False, type=str, default='0,0,0', help='Color in R,G,B format to display for genome browser track [0,0,0]')
+	macs2_group.add_argument('--macs2_genome', required=False, type=str, default='hg', help='MACS2 genome size (e.g. hg for hg19, mm for mm10)')
 
 	skip_group = parser.add_argument_group('Skip processing')
 	skip_group.add_argument('--skip_align', required=False, action='store_true', default=False, help='Skip read alignment step [OFF]')

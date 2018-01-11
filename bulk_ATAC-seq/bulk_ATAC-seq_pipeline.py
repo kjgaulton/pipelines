@@ -104,7 +104,7 @@ def call_peaks(args, input_bam):
 			'-t', input_bam, 
 			'--outdir', args.output, 
 			'-n', args.name,
-			'-g', 'hs',
+			'-g', args.macs2_genome,
 			'--nomodel', '-B', 
 			'--shift', '-100', 
 			'--extsize', '200', 
@@ -130,15 +130,24 @@ def make_bedgraph(args):
 	
 	bdgcmp_out = os.path.join(args.output, args.name + '_ppois.bdg')
 	
-	label = 'track type=bedGraph name=\"{0}\" description=\"{0}, ATAC peaks\" visibility=2 color={1} altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name, args.bdg_color)
+	bdg_label = 'track type=bedGraph name=\"{0}\" description=\"{0}, ATAC signal\" visibility=2 color={1} altColor=0,0,0 autoScale=off maxHeightPixels=64:64:32'.format(args.name, args.bdg_color)
 	sorted_bdg = os.path.join(args.output, args.name  + '_ppois.sorted.bdg')
 	sort_cmd = ['sort', '-k', '1,1', '-k', '2,2n', bdgcmp_out]
 	with open(sorted_bdg, 'w') as f:
-		print(label, file=f)
-	with open(sorted_bdg, 'a') as f:
+		print(bdg_label, file=f)
+	with open(sorted_bdg, 'a') as f:	
 		subprocess.call(sort_cmd, stdout=f)
 	subprocess.call(['gzip', sorted_bdg])
 	os.remove(bdgcmp_out)
+	
+	narrow_peaks = os.path.join(args.output, args.name + '_peaks.narrowPeak')
+	peak_label = 'track type=narrowPeak name=\"{0} peaks\" description=\"{0}, ATAC peaks\" color={1}'.format(args.name, args.bdg_color)
+	peaks = open(narrow_peaks).read().splitlines()
+	with open(narrow_peaks, 'w') as f:
+		print(peak_label, file=f)
+		for p in peaks:
+			print(p, file=f)
+
 	return
 
 #=======================================================#
@@ -261,6 +270,7 @@ def process_args():
 	qc_group.add_argument('--blacklist', required=False, type=str, default='/home/joshchiou/references/ENCODE.hg19.blacklist.bed', help='Path to blacklist BED file to ignore ENCODE high signal regions [/home/joshchiou/references/ENCODE.hg19.blacklist.bed]')
 	
 	bedgraph_group = parser.add_argument_group('Signal track arguments')
+	bedgraph_group.add_argument('--macs2_genome', required=False, type=str, default='hg', help='MACS2 genome (e.g. hg or mm) for peak calling')
 	bedgraph_group.add_argument('--bdg_color', required=False, type=str, default='0,0,0', help='Color for genome browser signal track in R,G,B [0,0,0]')
 
 	skip_group = parser.add_argument_group('Skip processing steps')
