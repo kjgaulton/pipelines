@@ -40,7 +40,7 @@ def process_reads(args, reads, name):
 			log=log,
 			aligner=seqalign.BwaAligner(
 				reference_genome_path=args.reference, 
-				trim=15
+				trim_qual=15
 			),
 			dedupper=picard.MarkDuplicates(
 				metrics_file=output_prefix + '.MarkDuplicates.metrics',
