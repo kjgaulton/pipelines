@@ -262,7 +262,7 @@ def process_args():
 	align_group.add_argument('-t', '--threads', required=False, type=int, default=4, help='Number of threads to use [4]')
 	align_group.add_argument('-m', '--memory', required=False, type=int, default=8, help='Maximum memory (in Gb) per thread for samtools sort [8]')
 	align_group.add_argument('-q', '--quality', required=False, type=int, default=30, help='Mapping quality cutoff for samtools [30]')
-	align_group.add_argument('-ref', '--reference', required=False, type=str, default='/home/joshchiou/references/ucsc.hg19.fasta', help='Path to reference genome [/home/joshchiou/references/ucsc.hg19.fasta]')
+	align_group.add_argument('-ref', '--reference', required=False, type=str, default='/home/joshchiou/references/male.hg19.fa', help='Path to reference genome [/home/joshchiou/references/male.hg19.fa]')
 	align_group.add_argument('--picard_mark_dup', required=False, type=str, default='/home/joshchiou/bin/MarkDuplicates.jar', help='Path to picard MarkDuplicates.jar [/home/joshchiou/bin/MarkDuplicates.jar]')
 	
 	qc_group = parser.add_argument_group('QC arguments')
@@ -270,7 +270,7 @@ def process_args():
 	qc_group.add_argument('--blacklist', required=False, type=str, default='/home/joshchiou/references/ENCODE.hg19.blacklist.bed', help='Path to blacklist BED file to ignore ENCODE high signal regions [/home/joshchiou/references/ENCODE.hg19.blacklist.bed]')
 	
 	bedgraph_group = parser.add_argument_group('Signal track arguments')
-	bedgraph_group.add_argument('--macs2_genome', required=False, type=str, default='hg', help='MACS2 genome (e.g. hg or mm) for peak calling')
+	bedgraph_group.add_argument('--macs2_genome', required=False, type=str, default='hs', help='MACS2 genome (e.g. hs or mm) for peak calling')
 	bedgraph_group.add_argument('--bdg_color', required=False, type=str, default='0,0,0', help='Color for genome browser signal track in R,G,B [0,0,0]')
 
 	skip_group = parser.add_argument_group('Skip processing steps')
