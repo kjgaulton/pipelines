@@ -44,11 +44,14 @@ preprocess_counts <- function(counts, ref_allele = NULL) {
 selex_multinom <- function(
   counts,
   weights = default_weights,
-  ref_allele = NULL
+  ref_allele = NULL,
+  sink = TRUE
 ) {
   counts <- preprocess_counts(counts, ref_allele = ref_allele)
   cycle <- c(0, 1, 2, 3, 4)
+  if (sink) {sink("/dev/null")}
   fit <- multinom(counts ~ cycle, weights = weights)
+  if (sink) {sink()}
   fit[["counts"]] <- counts
   fit[["ref.allele"]] <- colnames(counts)[[1]]
   fit[["input.weights"]] <- weights
@@ -104,9 +107,7 @@ estimate_standard_errors <- function(
   n = 100,
   cores = detectCores()
 ) {
-  sink("/dev/null")
   sample <- sample_coefficients(counts, weights = weights, n = n, cores = cores)
-  sink()
   sapply(1:3, function(row) sd(sample[row,]))
 }
 
