@@ -95,9 +95,11 @@ sample_coefficients <- function(
       mclapply(
         lapply(1:n, function(x) randomize_counts(counts)),
         function(c) {
-          selex_multinom(c, weights = weights)
-          [["coefficients"]]
-          [n_alleles:2*(n_alleles-1)]
+          (
+            selex_multinom(c, weights = weights)
+            [["coefficients"]]
+            [n_alleles:2*(n_alleles-1)]
+          )
         },
         mc.cores = cores
       )
