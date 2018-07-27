@@ -89,15 +89,20 @@ sample_coefficients <- function(
   n = 1,
   cores = detectCores()
 ) {
+  n_alleles = ncol(counts)
   matrix(
     unlist(
       mclapply(
         lapply(1:n, function(x) randomize_counts(counts)),
-        function(c) selex_multinom(c, weights = weights)[["coefficients"]][4:6],
+        function(c) {
+          selex_multinom(c, weights = weights)
+          [["coefficients"]]
+          [n_alleles:2*(n_alleles-1)]
+        },
         mc.cores = cores
       )
     ),
-    nrow = 3
+    nrow = n_alleles - 1
   )
 }
 
@@ -108,7 +113,7 @@ estimate_standard_errors <- function(
   cores = detectCores()
 ) {
   sample <- sample_coefficients(counts, weights = weights, n = n, cores = cores)
-  sapply(1:3, function(row) sd(sample[row,]))
+  sapply(1:(ncol(counts)-1), function(row) sd(sample[row,]))
 }
 
 estimate_z_scores <- function(
@@ -125,7 +130,11 @@ estimate_z_scores <- function(
       cores = cores
     )
   }
-  setNames(fit[["coefficients"]][4:6] / estimated_se, fit[["lab"]][2:4])
+  n_alleles = ncol(fit[["counts"]])
+  setNames(
+    fit[["coefficients"]][n_alleles:2*(n_alleles-1)] / estimated_se,
+    fit[["lab"]][2:n_alleles]
+  )
 }
 
 two_tailed_z_test <- function(z) {
