@@ -53,8 +53,8 @@ Last update: 08/10/2017
 Maintained by: Anthony Aylward
 ```
 
-## wasp\_mapping
-Process ChIP-seq, RNA-seq, and ATAC-seq data and apply WASP.  
+## ChIP-seq\_imbalance
+Allelic imbalance analysis on ChIP-seq data.  
 ```
 Last update: 05/29/2017
 Maintained by: Anthony Aylward
