@@ -56,7 +56,7 @@ Maintained by: Anthony Aylward
 ## ChIP-seq\_imbalance
 Allelic imbalance analysis on ChIP-seq data.  
 ```
-Last update: 05/29/2017
+Last update: 09/7/2018
 Maintained by: Anthony Aylward
 ```
 
