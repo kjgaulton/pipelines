@@ -14,7 +14,7 @@ if hostname == 'gatsby.ucsd.edu':
 elif hostname == 'holden':
     sys.path.append('/lab/kglab-python3-modules')
 
-import chippeaks
+import chipseqpeaks
 import picard
 import seqalign
 
