@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-#------------------------------------------------------------------------------#
-#                               namedpipe.py                                   #
-#------------------------------------------------------------------------------#
+#===============================================================================
+# namedpipe.py
+#===============================================================================
 
-'''Utility for named pipes
-'''
-
+"""Utility for named pipes"""
 
 
 
-#------------------------------- Dependencies ---------------------------------#
+
+# Imports ======================================================================
 
 import os
 import tempfile
@@ -17,7 +16,7 @@ import tempfile
 
 
 
-#---------------------------- Class definitions -------------------------------#
+# Classes ======================================================================
 
 class NamedPipe():
     '''Context manager for a named pipe'''
@@ -39,9 +38,9 @@ class NamedPipe():
 
 
 
-#---------------------------- Function definitions ----------------------------#
+# Functions ====================================================================
 
 def temp_named_pipe():
-    with tempfile.NamedTemporaryFile() as temp:
+    with tempfile.NamedTemporaryFile(dir='/home/data/tmp') as temp:
         pipe_name = temp.name
     return NamedPipe(pipe_name)
