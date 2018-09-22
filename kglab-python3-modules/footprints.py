@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#------------------------------------------------------------------------------#
-#                                footprints.py                                 #
-#------------------------------------------------------------------------------#
+#===============================================================================
+# footprints.py
+#===============================================================================
 
-'''Easy management of transcription factor footprinting data
+"""Easy management of transcription factor footprinting data
 
 A mini-module for managing footprint data. The language of this module treats
 "footprints" as an abstraction, but mostly handles them as a JSON object / 
@@ -35,23 +35,69 @@ Function
 ---------
 check_input
     check that an input is str or bytes
+"""
+
+
+
+
+# Constants ====================================================================
+
+CENTIPEDE_SCRIPT = (
+'''#!/usr/bin/R
+
+sink("/dev/null")
+
+library(jsonlite)
+library(CENTIPEDE)
+library(CENTIPEDE.tutorial)
+suppressMessages(library(Rsamtools))
+
+args=commandArgs(trailingOnly=T)
+motifs <- args[1]
+bam.sorted <- args[2]
+test_motif <- args[3]
+  
+cen <- centipede_data(
+    bam_file=bam.sorted,
+    fimo_file=motifs,
+    pvalue=1e-4,
+    flank_size=100
+)
+
+fit <- fitCentipede(
+  Xlist = list(DNase = cen$mat),
+  Y = as.matrix(data.frame(
+    Intercept = rep(1, nrow(cen$mat))
+  ))
+)
+
+json_fit <- toJSON(fit)
+
+sink()
+
+cat(json_fit)
 '''
+)
 
 
 
 
-#------------------------------- Dependencies ---------------------------------#
+# Imports ======================================================================
 
 import json
 import os
 import os.path
+import socket
 import subprocess
-import tempfile
 import sys
+import tempfile
 from multiprocessing import Pool
 
-sys.path.append('/home/data/kglab-python3-modules')
-sys.path.append('/lab/kglab-python3-modules')
+hostname = socket.gethostname()
+if hostname == 'gatsby.ucsd.edu':
+    sys.path.append('/home/data/kglab-python3-modules')
+elif hostname == 'holden':
+    sys.path.append('/lab/kglab-python3-modules')
 
 import hg19
 import namedpipe
@@ -59,10 +105,10 @@ import namedpipe
 
 
 
-#---------------------------- Class definitions -------------------------------#
+# Classes ======================================================================
 
 class Footprints():
-    '''TF footprints'''
+    """TF footprints"""
     
     def __init__(
         self,
@@ -71,7 +117,7 @@ class Footprints():
         motifs_db_path,
         centipede_path=None,
         input_bam_index=None,
-        reference_genome_path=hg19.path,
+        reference_genome_path=hg19.PATH,
         processes=1
     ):
         self.bam = check_input(input_bam)
@@ -151,7 +197,7 @@ class Footprints():
             for
             line
             in
-            self.motifs.decode().split('\n')
+            self.motifs.decode().splitlines()
         }
         if self.centipede_path:
             centipede_path = self.centipede_path
@@ -201,26 +247,24 @@ class Footprints():
 
 
 
-#--------------------------------- Exceptions ---------------------------------#
+# Exceptions ===================================================================
 
 class Error(Exception):
-   '''Base class for other exceptions'''
+   """Base class for other exceptions"""
    pass
 
 
-
-
 class BadInputError(Error):
-    '''Bad input error'''
+    """Bad input error"""
     pass
 
 
 
 
-#---------------------------- Function definitions ----------------------------#
+# Functions ====================================================================
 
 def check_input(input_file):
-    '''Check that an input is str or bytes'''
+    """Check that an input is str or bytes"""
     
     if isinstance(input_file, bytes):
         bytes_obj = input_file
@@ -230,8 +274,6 @@ def check_input(input_file):
     else:
         raise BadInputError('Input must be either str or bytes')
     return bytes_obj
-
-
 
 
 def centipede(footprints, centipede_path, search_motif):
@@ -284,46 +326,3 @@ def centipede(footprints, centipede_path, search_motif):
         if footprints.bam_index:
             os.remove('{}.bai'.format(temp_bam.name))
     return ((search_motif, json.loads(fit)) if fit else None)
-
-
-
-
-
-#---------------------------------- Constants ---------------------------------#
-
-CENTIPEDE_SCRIPT = (
-'''#!/usr/bin/R
-
-sink("/dev/null")
-
-library(jsonlite)
-library(CENTIPEDE)
-library(CENTIPEDE.tutorial)
-suppressMessages(library(Rsamtools))
-
-args=commandArgs(trailingOnly=T)
-motifs <- args[1]
-bam.sorted <- args[2]
-test_motif <- args[3]
-  
-cen <- centipede_data(
-    bam_file=bam.sorted,
-    fimo_file=motifs,
-    pvalue=1e-4,
-    flank_size=100
-)
-
-fit <- fitCentipede(
-  Xlist = list(DNase = cen$mat),
-  Y = as.matrix(data.frame(
-    Intercept = rep(1, nrow(cen$mat))
-  ))
-)
-
-json_fit <- toJSON(fit)
-
-sink()
-
-cat(json_fit)
-'''
-)
