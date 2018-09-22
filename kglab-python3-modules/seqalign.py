@@ -631,7 +631,7 @@ class BWA():
         Returns
         -------
         bytes
-            A BAM file in memory
+            A BAM file
         """
         
         if not isinstance(sequence_alignment.raw_reads_path, str):
@@ -645,8 +645,10 @@ class BWA():
                         'sh', '-c',
                         (
                             'bwa sampe {0} {1} {2} {3} {4} & '
-                            'bwa aln -t {5} -q {6} -l {7} -k {8} {0} {3} > {1} & '
-                            'bwa aln -t {5} -q {6} -l {7} -k {8} {0} {4} > {2} & '
+                            'bwa aln -t {5} -q {6} -l {7} -k {8} {0} {3} > '
+                            '{1} & '
+                            'bwa aln -t {5} -q {6} -l {7} -k {8} {0} {4} > '
+                            '{2} & '
                         )
                         .format(
                             self.reference_genome_path,
@@ -721,7 +723,7 @@ class BWA():
         Returns
         -------
         bytes
-            A BAM file in memory
+            A BAM file
         """
         
         with subprocess.Popen(
@@ -808,21 +810,17 @@ def file_format_from_extension(file_path):
     
     if (
         (file_path.split('.')[-1] in {'fasta', 'fa'})
-        or
-        (
+        or (
             file_path.split('.')[-1] == 'gz'
-            and
-            (file_path.split('.')[-2] in {'fasta', 'fa'})
+            and (file_path.split('.')[-2] in {'fasta', 'fa'})
         )
     ):
         format = 'fasta'
     elif (
         (file_path.split('.')[-1] in {'fastq', 'fq', 'fq1', 'fq2'})
-        or
-        (
+        or (
             file_path.split('.')[-1] == 'gz'
-            and
-            (file_path.split('.')[-2] in {'fastq', 'fq', 'fq1', 'fq2'})
+            and (file_path.split('.')[-2] in {'fastq', 'fq', 'fq1', 'fq2'})
         )
     ):
         format = 'fastq'
@@ -856,10 +854,7 @@ def get_median_read_length(raw_reads_paths, number_of_reads):
     if not isinstance(raw_reads_paths, str):
         formats = tuple(
             file_format_from_extension(raw_reads_paths[i])
-            for
-            i
-            in
-            range(2)
+            for i in range(2)
         )
     else:
         formats = (file_format_from_extension(raw_reads_paths),)
@@ -867,10 +862,8 @@ def get_median_read_length(raw_reads_paths, number_of_reads):
     for raw_reads_path, format in zip(raw_reads_paths, formats):
         with (
             gzip.open(raw_reads_path, 'rt')
-            if
-            raw_reads_path[-3:] == '.gz'
-            else
-            open(raw_reads_path, 'r')
+            if raw_reads_path[-3:] == '.gz'
+            else open(raw_reads_path, 'r')
         ) as raw_reads:
             for record in itertools.islice(
                 SeqIO.parse(raw_reads, format),
