@@ -52,6 +52,7 @@ def process_reads(args, reads, name):
 			sa.samtools_sort(memory_limit=args.memory * args.processes)
 			sa.samtools_index()
 			sa.remove_mitochondrial_reads()
+			sa.samtools_index()
 			sa.write(aligned_bam)
 			if os.path.exists(aligned_bam) and os.path.getsize(aligned_bam) != 0:
 				sa.remove_duplicates()
