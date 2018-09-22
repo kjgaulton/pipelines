@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#------------------------------------------------------------------------------#
-#                                   hg19.py                                    #
-#------------------------------------------------------------------------------#
+#===============================================================================
+# hg19.py
+#===============================================================================
 
-'''Get the coordinates of a variant from its RSID, or an RSID from its
+"""Get the coordinates of a variant from its RSID, or an RSID from its
 coordinates. 
 
 Examples
@@ -57,43 +57,56 @@ Global
 ------
 path
     absolute path to the hg19 reference genome
-'''
+"""
 
 
 
 
-#------------------------------- Dependencies ---------------------------------#
+# Imports ======================================================================
 
 import gzip
 import subprocess
 import os.path
+import socket
 
 
 
 
-#---------------------------- Class definitions -------------------------------#
+# Constants ====================================================================
 
-class DataDirectory():
-    sorted_by_rsid_path_format = (
-        '/data2/dbSNP/sorted-by-rsid/{}.bed.gz'
-        if
-        os.path.isdir('/data2/dbSNP/sorted-by-rsid')
-        else
-        '/home/data/dbSNP/sorted-by-rsid/{}.bed.gz'
-    )
-    sorted_by_coord_path = (
-        '/data2/dbSNP/dbSNP150.rsid.bed.gz'
-        if
-        os.path.isdir('/data2/dbSNP/sorted-by-rsid')
-        else
-        '/home/data/dbSNP/dbSNP150.rsid.bed.gz'
-    )
+HOSTNAME = socket.gethostname()
+
+PATH = (
+    '/data2/broad-resource-bundle-hg19/ucsc.hg19.fasta'
+    if
+    HOSTNAME == 'holden'
+    else
+    '/home/data/broad-resource-bundle-hg19/ucsc.hg19.fasta'
+)
+
+SORTED_BY_RSID_FORMAT = (
+    '/data2/dbSNP/sorted-by-rsid/{}.bed.gz'
+    if
+    HOSTNAME == 'holden'
+    else
+    '/home/data/dbSNP/sorted-by-rsid/{}.bed.gz'
+)
+
+SORTED_BY_COORD_PATH = (
+    '/data2/dbSNP/dbSNP150.rsid.bed.gz'
+    if
+    HOSTNAME == 'holden'
+    else
+    '/home/data/dbSNP/dbSNP150.rsid.bed.gz'
+)
 
 
 
+
+# Classes ======================================================================
 
 class Coordinates():
-    '''The coordinates of a variant'''
+    """The coordinates of a variant"""
     
     def __init__(self, chr, pos):
         self.chr = chr
@@ -104,27 +117,39 @@ class Coordinates():
         return 'Coordinates(chr={}, pos={})'.format(self.chr, self.pos)
 
 
+class Variant():
+    """The id and coordinates of a variant"""
+    
+    def __init__(self, id, chr, pos):
+        self.id = id
+        self.chr = chr
+        self.pos = pos
+        self.tuple = id, chr, pos
+    
+    def __repr__(self):
+        return 'Variant(id={}, chr={}, pos={})'.format(
+            self.id,
+            self.chr,
+            self.pos
+        )
 
 
-#--------------------------- Function definitions -----------------------------#
+
+
+# Functions ====================================================================
 
 def coord(rsid):
-    '''get the coordinates and return them as an object'''
+    """Get the coordinates and return them as an object"""
     
     chr, pos = coord_tuple(rsid)
     return Coordinates(chr, pos)
 
 
-
-
 def coord_tuple(rsid):
-    '''get the coordinates and return them as a tuple'''
+    """Get the coordinates and return them as a tuple"""
     
     with subprocess.Popen(
-        (
-            'zcat',
-            DataDirectory.sorted_by_rsid_path_format.format(rsid[:4])
-        ),
+        ('zcat', SORTED_BY_RSID_FORMAT.format(rsid[:4])),
         stdout=subprocess.PIPE
     ) as zcat:
         with subprocess.Popen(
@@ -145,21 +170,20 @@ def coord_tuple(rsid):
     return chr[3:], int(pos)
 
 
-
-
 def rsid(chr, pos):
-    '''get the rsid and return it as a string'''
+    """Get the rsid and return it as a string"""
+    
     with subprocess.Popen(
         (
             'tabix',
-            DataDirectory.sorted_by_coord_path,
+            SORTED_BY_COORD_PATH,
             'chr{0}:{1}-{1}'.format(str(chr).replace('chr', ''), pos)
         ),
         stdout=subprocess.PIPE
     ) as tabix:
         dbsnp_line, _ = tabix.communicate()
     try:
-        _, _, _, rsid, _, _ = dbsnp_line.decode().split('\t')
+        _, _, _, rsid, *rest = dbsnp_line.decode().split('\t')
     except ValueError:
         raise ValueError(
             'A variant at chromosome {}, position {} was not found in the '
@@ -169,20 +193,39 @@ def rsid(chr, pos):
     return rsid
 
 
+def range(chr, start, end):
+    """Generate all variants within a given genomic range"""
+    
+    with subprocess.Popen(
+        (
+            'tabix',
+            SORTED_BY_COORD_PATH,
+            'chr{0}:{1}-{2}'.format(str(chr).replace('chr', ''), start, end)
+        ),
+        stdout=subprocess.PIPE
+    ) as tabix:
+        dbsnp_lines, _ = tabix.communicate()
+    for dbsnp_line in dbsnp_lines.decode().splitlines():
+        chr, _, pos, rsid, *rest = dbsnp_line.split('\t')
+        yield Variant(rsid, chr.replace('chr', ''), int(pos))
 
-#---------------------------------- Globals -----------------------------------#
 
-path = (
-        '/data2/broad-resource-bundle-hg19/ucsc.hg19.fasta'
-        if
-        os.path.isdir('/data2/broad-resource-bundle-hg19/')
-        else
-        '/home/data/broad-resource-bundle-hg19/ucsc.hg19.fasta'
-    )
+def generate_coord_rsid_pairs(file):
+    for line in file:
+        chr, _, pos, rsid, *alleles = line.split()
+        yield (chr.replace('chr', ''), int(pos)), rsid
 
 
+def coord_rsid_dict():
+    """A dictionary containing coord: rsid pairs"""
+    
+    with gzip.open(SORTED_BY_COORD_PATH, 'rt') as f:
+        return dict(generate_coord_rsid_pairs(f))
 
-#------------------------------------ test ------------------------------------#
+
+
+
+# test =========================================================================
 
 if __name__ == '__main__':
     rs10_coord = coord('rs10')
