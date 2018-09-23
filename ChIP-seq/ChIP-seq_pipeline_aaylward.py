@@ -80,7 +80,6 @@ def call_peaks(args, treat_bam, control_bam):
 	        cp.log = g
 	        cp.bdgcmp()
 	        cp.write(os.path.join(args.output, args.name))
-	return
 
 #=======================================================#
 
