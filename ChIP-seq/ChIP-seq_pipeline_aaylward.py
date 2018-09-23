@@ -97,7 +97,6 @@ def bdgcmp(args):
 		subprocess.call(sort_cmd, stdout=f)
 	subprocess.call(['gzip', sorted_bdg])
 	os.remove(bdgcmp_out)
-	return
 
 #=======================================================#
 
