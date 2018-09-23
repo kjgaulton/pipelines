@@ -68,7 +68,7 @@ def call_peaks(args, treat_bam, control_bam):
 	macs2_log = os.path.join(args.output, '.'.join([args.name, 'macs2_callpeaks.log']))
 	bdgcmp_log = os.path.join(args.output, '.'.join([args.name, 'bdgcmp.log']))
 	with open(macs2_log, 'w') as f, open(bdgcmp_log, 'w') as g:
-	    with chippeaks.ChipPeaks(
+	    with chipseqpeaks.ChIPSeqPeaks(
 	        treatment_bam=treat_bam,
 	        control_bam=control_bam,
 	        qvalue=args.qvalue,
