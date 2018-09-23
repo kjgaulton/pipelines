@@ -79,7 +79,7 @@ def call_peaks(args, treat_bam, control_bam):
 	        cp.cleans_up = False
 	        cp.log=g
 	        cp.bdgcmp()
-	        cp.write('{}/{}'.format(args.output, args.name))
+	        cp.write(os.path.join(args.output, args.name))
 	return
 
 #=======================================================#
