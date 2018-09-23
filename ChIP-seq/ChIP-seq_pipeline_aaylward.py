@@ -74,7 +74,8 @@ def call_peaks(args, treat_bam, control_bam):
 	        qvalue=args.qvalue,
 	        broad=args.broad,
 	        broad_cutoff=args.broad_cutoff,
-	        log=f
+	        log=f,
+		tmp_dir='/home/data/tmp'
 	    ) as cp:
 	        cp.cleans_up = False
 	        cp.log = g
