@@ -46,7 +46,7 @@ import tempfile
 
 # Classes ======================================================================
 
-class ChipSeqPeaks():
+class ChIPSeqPeaks():
     """ChIP-seq peaks"""
     
     def __init__(
