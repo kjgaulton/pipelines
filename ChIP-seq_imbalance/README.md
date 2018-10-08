@@ -141,7 +141,7 @@ After running this command, we can see the BAM files written to the `alignment`
 directory:
 
 ```sh
-ls alignment
+ls alignment/*HI_87*
 ```
 
 ```
