@@ -7,13 +7,13 @@ gatsby):
 1. remapping (WASP)
 1. computing imbalance statistics
 
-We will apply these steps to two groups of assays: islet sample HI-87 from
+We will apply these steps to two groups of FASTQ files: islet sample HI-87 from
 the pasquali data, and our recent 2018 HepG2/FOXA2 data.
 
-| Dataset | No. assays | Details |
+| Dataset | No. FASTQ files | Details |
 |---|---|---|
-| `HI_87` | 2 | Chip-seq of MAFB and NKX2-2 in islet |
-| `HepG2_FOXA2` | 3 | 3x ChIP-seq of FOXA2 in HepG2 |
+| HI-87 | 2 | Chip-seq of MAFB and NKX2-2 in islet |
+| HepG2 FOXA2 | 3 | 3x ChIP-seq of FOXA2 in HepG2 |
 
 The first section (Example Runs) shows how these datasets are processed in a
 dense format. The subsequent sections break down each step in more detail.
@@ -307,7 +307,7 @@ cluster-pileups --processes 16 remap/pileup/HepG2_FOXA2_*.pileup \
 ### Results
 
 Each output file contains some statistics quantifying allelic imbalance at
-each variant that passes a minimum coverage threshold
+each variant that passes a minimum coverage threshold (10-fold, by default).
 
 ```sh
 head MAFB_HI_87_imbalance.txt 
@@ -324,3 +324,5 @@ chr     pos     coverage        ref_count       binom_pval      binom_fdr       
 3       121865446       10      4       0.357676938376882       1       0.541862757563377       1       -0.370829428120181
 3       133132496       11      5       0.555506684067047       1       0.737521773646807       1       -0.213806639923069
 ```
+
+I'm calling the effect size column "log posterior allelic fold change," since it's similar to log allelic fold change but is based on a posterior estimate of the "ground truth" allelic fraction (computed from the observed counts and the estimated beta prior), rather than just the observed counts.
