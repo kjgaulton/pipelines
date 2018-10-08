@@ -310,7 +310,7 @@ cluster-pileups --processes 16 remap/pileup/HepG2_FOXA2_*.pileup \
 `cluster-pileups` estimates an empirical beta-binomial distribution for each
 input pileup, identifies clusters of pileups with similar distributions,
 merges each cluster into one set of count data, and then passes these count
-datasets to `call-imbalance` to handle statisticslly.
+datasets to `call-imbalance` to handle statistically.
 
 ### Results
 
