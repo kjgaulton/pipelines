@@ -286,6 +286,9 @@ do pileup-to-counts --json remap/pileup/${factor}_HI_87.pileup \
 done 
 ```
 
+`pileup-to-counts` converts a pileup into allele counts that can be processed
+by `call-imbalance`.
+
 Here the `--json` option causes `pileup-to-counts` to produce the allele count
 data as a JSON file instead of a normal tabular file. This is because
 `call-imbalance` is an R script and I've found that R isn't great at reading
