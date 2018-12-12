@@ -1,39 +1,39 @@
-# pipelines
-Pipelines for the Gaulton Lab at UCSD.  
+# analytical tools
+Analytical tools and pipelines developed by the Gaulton Lab at UCSD.  
 
 ## bulk\_ATAC-seq
-Pipeline to process bulk ATAC-seq data.  
+Process bulk ATAC-seq data.  
 ```
 Last update: 08/30/2017
 Maintained by: Josh Chiou
 ```
 ## single-cell\_ATAC-seq
-Pipeline to process single-cell ATAC-seq data. *Still needs to be tested on actual data.*  
+Process and analyze single-cell ATAC-seq data. 
 ```
-Last update: 06/22/2017
+Last update: 12/10/2018
 Maintained by: Josh Chiou
 ```
 ## rare\_variants
-Pipeline for rare variant testing in disrupted footprints.  
+Rare variant testing in disrupted footprints.  
 ```
 Last update: 06/26/2017
 Maintained by: Josh Chiou
 ```
 ## reweight\_variants
-Scripts for re-weighting variants after applying epigenetic and eQTL priors.  
+Re-weighting variants after applying epigenetic and eQTL priors.  
 ```
 Last update: 07/02/2017
 Maintained by: Josh Chiou
 ```
 ## ATAC-seq\_footprinting
-Scripts for footprinting in ATAC-seq peaks.  
+Footprinting in ATAC-seq peaks.  
 ```
 Last update: 06/11/2017
 Maintained by: Josh Chiou
 ```
 
 ## ChIP-seq
-Pipeline for processing ChIP-seq data
+ChIP-seq data
 ```
 Last update: 07/21/2017
 Maintained by: Josh Chiou
@@ -54,7 +54,7 @@ Maintained by: Anthony Aylward
 ```
 
 ## ChIP-seq\_imbalance
-Allelic imbalance analysis on ChIP-seq data.  
+Allelic imbalance analysis and workflow for ChIP-seq data.  
 ```
 Last update: 09/7/2018
 Maintained by: Anthony Aylward
