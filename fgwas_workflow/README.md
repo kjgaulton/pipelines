@@ -31,9 +31,6 @@
                             annotation list given by -w.
 
     alternate workflow arguments:
-      --restrict-to-defined-ci-annotations
-                            Exclude from analysis any annotations whose individual
-                            results have undefined confidence intervals.
       --positive-estimates-only
                             Add an annotation to the joint model only if it has a
                             positive parameter estimate.

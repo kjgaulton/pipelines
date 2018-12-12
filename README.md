@@ -4,7 +4,7 @@ Pipelines for the Gaulton Lab at UCSD.
 ## bulk\_ATAC-seq
 Pipeline to process bulk ATAC-seq data.  
 ```
-Last update: 07/20/2017
+Last update: 08/30/2017
 Maintained by: Josh Chiou
 ```
 ## single-cell\_ATAC-seq
@@ -49,13 +49,20 @@ Maintained by: Anthony Aylward
 ## fgwas\_workflow
 Implementation of the workflow suggested by the FGWAS manual.  
 ```
-Last update: 07/20/2017
+Last update: 08/10/2017
 Maintained by: Anthony Aylward
 ```
 
-## wasp\_mapping
-Process ChIP-seq, RNA-seq, and ATAC-seq data and apply WASP.  
+## ChIP-seq\_imbalance
+Allelic imbalance analysis on ChIP-seq data.  
 ```
-Last update: 05/29/2017
+Last update: 09/7/2018
 Maintained by: Anthony Aylward
+```
+
+## infer\_footprints
+Infer TF binding footprints from DNase-seq data.  
+```
+Last update: 09/24/2017
+Maintained by: Mei-Lin Okino, Anthony Aylward
 ```
