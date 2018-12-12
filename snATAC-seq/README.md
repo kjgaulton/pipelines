@@ -5,9 +5,9 @@ A typical experiment can be analyzed by using scripts/notebooks in the order:
 * snATAC_pipeline.py
 * snATAC_analysis.ipynb
 
-demultplex.py - demultiplex barcodes and prepend them to the read name
-snATAC_pipeline.py - process demultiplexed data and create count matrices using windows genome-wide
-snATAC_analysis.ipynb - use count matrices to cluster cells from one experiment or across experiments
+demultplex.py - demultiplex barcodes and prepend them to the read name  
+snATAC_pipeline.py - process demultiplexed data and create count matrices using windows genome-wide  
+snATAC_analysis.ipynb - use count matrices to cluster cells from one experiment or across experiments  
 
 ```
 usage: snATAC_pipeline.py [-h] -r1 READ1 -r2 READ2 [-o OUTPUT] -n NAME
