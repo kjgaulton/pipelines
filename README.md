@@ -7,8 +7,8 @@ Process bulk ATAC-seq data.
 Last update: 08/30/2017
 Maintained by: Josh Chiou
 ```
-## single-cell\_ATAC-seq
-Process and analyze single-cell ATAC-seq data. 
+## snATAC-seq
+Process and analyze single nucleus ATAC-seq data. 
 ```
 Last update: 12/10/2018
 Maintained by: Josh Chiou
